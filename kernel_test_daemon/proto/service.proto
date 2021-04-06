@@ -1,0 +1,35 @@
+
+package service;
+
+message Task {
+    required string task_id = 1;
+    required string command = 2;
+    optional string args = 3;
+}
+
+message TaskResult {
+    required string task_id = 1;
+    required int32 result = 2;
+    optional string detail = 3;
+}
+
+message FetchTaskRequest {
+
+}
+
+message FetchTaskResponse {
+    required Task task = 1;
+}
+
+message UpdateResultRequest {
+    required TaskResult task_result = 1;
+}
+
+message UpdateResultResponse {
+    required int32 ret = 1;
+}
+
+service TaskService {
+    rpc FetchTask (FetchTaskRequest) returns (FetchTaskResponse) {}
+    rpc UpdateResult (UpdateResultRequest) returns (UpdateResultResponse) {}
+}

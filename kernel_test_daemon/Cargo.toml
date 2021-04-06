@@ -1,0 +1,31 @@
+[package]
+name = "kernel_test_daemon"
+version = "0.1.0"
+authors = ["foxhlchen <foxhlchen@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+imap = "2.4"
+native-tls = "*"
+toml = "0.5"
+serde = "1.0"
+serde_derive = "1.0"
+tokio = { version = "*", features = ["full"] }
+tonic = "*"
+prost = "*"
+log4rs = "1.0.0"
+log = "0.4"
+regex = "1"
+
+[build-dependencies]
+tonic-build = "*"
+
+[[bin]]
+    name = "controller"
+    path = "src/controller.rs"
+
+[[bin]]
+    name = "worker"
+    path = "src/worker.rs"
