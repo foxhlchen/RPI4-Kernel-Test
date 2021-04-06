@@ -33,18 +33,19 @@ impl TaskMgr {
 
         loop {
             let fetch_rs = super::mail::fetch_unread(&self.conf.get().imap);
-            if fetch_rs.is_err() {
-                let Err(error) = fetch_rs;
+            if let Err(error) = fetch_rs {
+                
                 error!("fetch mail failed. error: {}", error.to_string());
 
                 sleep(Duration::from_secs(3600)).await; //back off for an hour
                 continue;
             }
 
-            let Ok(mails) = fetch_rs;
-            for (seq, mail) in mails {
+            if let Ok(mails) = fetch_rs {
+                for (seq, mail) in mails {
 
-                assert!(re.is_match("2014-01-01"));
+                    assert!(re.is_match("2014-01-01"));
+                }
             }
         }
     }

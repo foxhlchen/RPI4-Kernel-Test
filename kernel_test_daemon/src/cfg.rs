@@ -85,6 +85,12 @@ domain = "imap.google.com"
 username = "abc@gmail.com"
 password = "asdfjkl;"
 mailbox = "INBOX"
+
+[rpc]
+addr = "[::1]:9999"
+
+[log]
+conf_path = "log4rs.yaml"
         "#.as_bytes()).is_err() );
 
         let cfgmgr = match ConfigMgr::new_with_path("test-config.toml") {

@@ -59,9 +59,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let taskmgr_handle = task::TaskMgr::start_new(conf)?;
 
     info!("Start RPC Service");
-    let rpcserv_handle = Server::builder()
+    let rpcserv = Server::builder()
         .add_service(TaskServiceServer::new(taskservice))
         .serve(addr);
+
+    let rpcserv_handle = tokio::spawn( async move {
+        rpcserv.await
+    });
 
     let rs = tokio::try_join!(taskmgr_handle, rpcserv_handle);
 
