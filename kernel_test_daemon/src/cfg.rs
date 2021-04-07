@@ -27,6 +27,7 @@ pub struct IMap {
 #[derive(Deserialize)]
 pub struct Rpc {
     pub addr: String,
+    pub taskcache: String,
 }
 
 pub struct ConfigMgr {
@@ -88,6 +89,7 @@ mailbox = "INBOX"
 
 [rpc]
 addr = "[::1]:9999"
+taskcache = "task.cache"
 
 [log]
 conf_path = "log4rs.yaml"

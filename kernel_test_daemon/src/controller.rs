@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let taskservice = RealTaskService::default();
 
     info!("Start Task Manager");
-    let taskmgr_handle = task::TaskMgr::start_new(conf)?;
+    let taskmgr_handle = task::TaskMgr::start(conf)?;
 
     info!("Start RPC Service");
     let rpcserv = Server::builder()

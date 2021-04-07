@@ -1,6 +1,6 @@
 use log::{error, warn, info, debug, trace};
 
-struct MailMgr {
+pub struct MailMgr {
 	session: imap::Session<native_tls::TlsStream<std::net::TcpStream>>,
 }
 
@@ -14,7 +14,15 @@ impl MailMgr {
 			.login(&imap_conf.username, &imap_conf.password)
 			.map_err(|e| e.0)?;
 
-		Ok(MailMgr {session: imap_session})
+		let mut mailmgr = MailMgr {session: imap_session};
+
+		mailmgr.select(&imap_conf.mailbox)?;
+
+		Ok(mailmgr)
+	}
+
+	pub fn select(&mut self, mailbox: &str) -> imap::error::Result<imap::types::Mailbox> {
+		self.session.select(mailbox)
 	}
 
 	pub fn list(&mut self) -> imap::error::Result<Vec<String>> {
@@ -65,6 +73,16 @@ impl MailMgr {
 	pub fn fetch_unread(&mut self) -> imap::error::Result<std::collections::HashSet<u32>> {
 		self.session.search("NOT SEEN")
 	}
+}
+
+impl Drop for MailMgr {
+	fn drop(&mut self) {
+        let rs = self.session.logout();
+		if rs.is_err() {
+			let e = rs.unwrap_err();
+			error!("{}", e.to_string());
+		}
+    }
 }
 
 pub fn list(imap_conf: &super::cfg::IMap) -> imap::error::Result<Vec<String>> {
@@ -131,11 +149,16 @@ mod tests {
     #[test]
     fn test_fetch() {
 		let conf = crate::cfg::ConfigMgr::new().unwrap();
-        let mails = super::fetch_unread(&conf.get().imap).unwrap();
+        let mut mailmgr = super::MailMgr::new(&conf.get().imap).unwrap();
 
-		for (seq, mail) in mails {
+
+		let seq = 97;
+		let mail = mailmgr.fetch_mail(seq).unwrap();
+		println!("{} {}", &seq, mail);
+
+		/*for (seq, mail) in mails {
 			println!("{} {}", seq, mail);
-		}
+		}*/
     }
 
 }
