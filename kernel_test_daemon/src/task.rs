@@ -33,7 +33,7 @@ impl TaskMgr {
         newmgr.init()?;
 
         Ok(tokio::spawn(async move {
-            newmgr.run();
+            newmgr.run().await
         }))
     }
 
