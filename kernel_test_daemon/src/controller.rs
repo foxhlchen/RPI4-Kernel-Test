@@ -7,6 +7,7 @@ use tonic::{transport::Server, Request, Response, Status};
 use service::task_service_server::{TaskService, TaskServiceServer};
 use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse};
 use log::{error, warn, info, debug, trace};
+use chrono::prelude::*;
 use log4rs;
 
 pub mod service {
@@ -22,13 +23,36 @@ impl TaskService for RealTaskService {
             &self,
             request: tonic::Request<FetchTaskRequest>,
         ) -> Result<tonic::Response<FetchTaskResponse>, tonic::Status> {
-            let reply = FetchTaskResponse {task: Task {
-                task_id: "".to_string(),
-                command: "".to_string(),
-                args: None,
-            }};
+            let mut tasks = task::TASKS.lock().unwrap();
 
-            Ok(Response::new(reply))
+            for (_, task) in tasks.iter() {
+                let task_id = task.task_id.clone();
+                let command = task.task_info.get("X-KernelTest-Branch").unwrap().clone();
+                let deadline = task.task_info.get("X-KernelTest-Deadline").unwrap().clone();
+
+                let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
+                if let Err(error) = rfc3339 {
+                    error!("error deadline {} {} {}", &task_id, &deadline, error);
+                    continue;
+                }
+                let deadline = rfc3339.unwrap();
+                let now = Local::now();
+
+                if now > deadline {
+                    warn!("expired task {} deadline {} now{}", &task_id, &deadline, &now);
+                    continue;
+                }
+
+                let reply = FetchTaskResponse {task: Task {
+                    task_id: task_id,
+                    command: command,
+                    args: None,
+                }};
+
+                return Ok(Response::new(reply))
+            }
+
+            Err(tonic::Status::not_found("No Task found"))
         }
 
         async fn update_result(
@@ -69,7 +93,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rs = tokio::try_join!(taskmgr_handle, rpcserv_handle);
 
-    rs?;
+    if let Err(error) = rs {
+        error!("{}", &error);
+    }
 
     Ok(())
 }

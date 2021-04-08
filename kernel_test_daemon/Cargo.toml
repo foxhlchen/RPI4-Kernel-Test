@@ -20,6 +20,7 @@ log = "0.4"
 regex = "1"
 lazy_static = "*"
 mailparse = "0.13"
+chrono = "0.4"
 
 [build-dependencies]
 tonic-build = "*"

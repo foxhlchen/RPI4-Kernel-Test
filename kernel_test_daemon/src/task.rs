@@ -9,6 +9,7 @@ use std::io::{self, BufRead};
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
 use std::io::Write;
+use chrono::prelude::*;
 
 lazy_static! {
     pub static ref TASKS: Mutex<HashMap<u32, Task>> = {
@@ -17,8 +18,8 @@ lazy_static! {
 }
 
 pub struct Task {
-    task_id: String,
-    task_info: HashMap<String, String>,
+    pub task_id: String,
+    pub task_info: HashMap<String, String>,
 }
 
 pub struct TaskMgr {
@@ -54,7 +55,7 @@ impl TaskMgr {
         let headers = parsed.get_headers();
 
         // Check Subject
-        let subject = headers.get_first_header("From");
+        let subject = headers.get_first_header("Subject");
         if subject.is_none() {
             error!("parse mail {} failed. error: {}", seq, "No subject exists");
             
@@ -119,9 +120,24 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
             info_map.insert("X-KernelTest-Deadline".to_owned(), v);
         });
 
-        if ! info_map.contains_key("X-KernelTest-Version") {
+        if ! info_map.contains_key("X-KernelTest-Deadline") {
             trace!("{} incorrect header", seq);
 
+            return None;
+        }
+
+        let deadline = info_map.get("X-KernelTest-Deadline").unwrap().clone();
+
+        let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
+        if let Err(error) = rfc3339 {
+            trace!("error deadline {} {} {}", &seq, &deadline, error);
+            return None;
+        }
+        let deadline = rfc3339.unwrap();
+        let now = Local::now();
+
+        if now > deadline {
+            trace!("expired task {} deadline {} now{}", &seq, &deadline, &now);
             return None;
         }
 
@@ -158,6 +174,7 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
                 let mail = mail.unwrap();
                 let rs = Self::mail_to_task(seq, &mail);
                 if let Some(task) = rs {
+                    info!("Loading task from disk succeeded. {}", seq);
                     TASKS.lock().unwrap().insert(seq, task);
                 }                           
             }
@@ -193,7 +210,12 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
                 }                           
             }
             
-            trace!("Polling unread mails done.");
+            match self.store_tasks_on_disk() {
+                Ok(_) => debug!("storing tasks on disk finished"),
+                Err(e) => error!("storing tasks on disk failed {}", e)                
+            }
+
+            info!("Polling unread mails done. waiting for next round.");
             sleep(Duration::from_secs(3600)).await; //sleep an hour
         }
     }
