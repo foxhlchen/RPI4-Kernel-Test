@@ -10,7 +10,7 @@ impl MailMgr {
 		let tls = native_tls::TlsConnector::builder().build().unwrap();
 		let client = imap::connect((domain, 993), domain, &tls).unwrap();
 		
-		let mut imap_session = client
+		let imap_session = client
 			.login(&imap_conf.username, &imap_conf.password)
 			.map_err(|e| e.0)?;
 
@@ -40,10 +40,16 @@ impl MailMgr {
 		let messages = self.session.fetch(seq.to_string(), "RFC822")?;
 		for message in messages.iter() {
 			// extract the message's body
-			let body = message.body().expect("message did not have a body!");
-			let body = std::str::from_utf8(body)
-				.expect("message was not valid utf-8")
-				.to_string();
+			let body = message.body();
+			if let None = body {
+				error!("mail {} has no body", seq);
+			}
+			let body = std::str::from_utf8(body.unwrap());
+			if let Err(e) = body {
+				error!("mail is not valid UTF8 {} {}", seq, e);
+				continue
+			}				
+			let body = body.unwrap().to_string();
 			return Ok(body);
 		}
 		Err(imap::Error::Bad("No mails found!".to_string()))
@@ -58,10 +64,16 @@ impl MailMgr {
 			let messages = self.session.fetch(seq.to_string(), "RFC822")?;
 			for message in messages.iter() {
 				// extract the message's body
-				let body = message.body().expect("message did not have a body!");
-				let body = std::str::from_utf8(body)
-					.expect("message was not valid utf-8")
-					.to_string();
+				let body = message.body();
+				if let None = body {
+					error!("mail {} has no body", seq);
+				}
+				let body = std::str::from_utf8(body.unwrap());
+				if let Err(e) = body {
+					error!("mail is not valid UTF8 {} {}", seq, e);
+					continue
+				}				
+				let body = body.unwrap().to_string();
 			
 				vec.push((seq, body));
 			}

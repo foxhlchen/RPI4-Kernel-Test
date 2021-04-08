@@ -61,7 +61,7 @@ impl TaskMgr {
             }
         }
         if drop {
-            trace!("{} {}", seq, "no gregkh in author field");
+            trace!("{} {}", seq, "no gregkh in the author field");
             return None;
         }
 
@@ -146,9 +146,7 @@ impl TaskMgr {
         loop {
             let mut mailmgr = MailMgr::new(&self.conf.get().imap).unwrap();
             let fetch_rs = mailmgr.fetch_unread();
-            if fetch_rs.is_err() {
-                let error = fetch_rs.unwrap_err();
-                
+            if let Err(error) = fetch_rs {
                 error!("fetch unread failed. error: {}", error.to_string());
                 sleep(Duration::from_secs(600)).await; //back off for some time
                 
@@ -158,8 +156,7 @@ impl TaskMgr {
             let unread_seqs = fetch_rs.unwrap();
             for seq in unread_seqs {
                 let mail = mailmgr.fetch_mail(seq);
-                if mail.is_err() {
-                    let error = mail.unwrap_err();
+                if let Err(error) = mail {
                     error!("fetch mail {} failed. error: {}", seq, error.to_string());
 
                     continue;
@@ -167,12 +164,12 @@ impl TaskMgr {
 
                 let mail = mail.unwrap();
                 let rs = Self::mail_to_task(seq, &mail);
-                if rs.is_some() {
-                    let task = rs.unwrap();
+                if let Some(task) = rs {
                     TASKS.lock().unwrap().insert(seq, task);
                 }                           
             }
             
+            trace!("Polling unread mails done.");
             sleep(Duration::from_secs(3600)).await; //sleep an hour
         }
     }
