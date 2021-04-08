@@ -2,7 +2,7 @@
 use log::{error, warn, info, debug, trace};
 use tokio::time::{sleep, Duration};
 use crate::mail::MailMgr;
-use email_parser::email::Email;
+use mailparse::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -44,34 +44,23 @@ impl TaskMgr {
 
     fn mail_to_task(seq: u32, email: &String) -> Option<Task> {
         // Parse mail
-        let parsed_rs = Email::parse(email.as_bytes());
-        if parsed_rs.is_err() {
-            let error = parsed_rs.unwrap_err();
-            error!("parse mail {} failed. error: {}", seq, error.to_string());
+        let parsed_rs = parse_mail(email.as_bytes());
+        if let Err(error) = parsed_rs {
+            error!("parse mail {} failed. error: {}", seq, error);
             
             return None;
         }
         let parsed = parsed_rs.unwrap();
-
-        // Check author
-        let mut drop = true;
-        for author in parsed.from {
-            if author.address.local_part == "gregkh" {
-                drop = false;
-            }
-        }
-        if drop {
-            trace!("{} {}", seq, "no gregkh in the author field");
-            return None;
-        }
+        let headers = parsed.get_headers();
 
         // Check Subject
-        if parsed.subject.is_none() {
+        let subject = headers.get_first_header("From");
+        if subject.is_none() {
             error!("parse mail {} failed. error: {}", seq, "No subject exists");
             
             return None;
         }
-        let subject = parsed.subject.unwrap();
+        let subject = subject.unwrap().get_value();
         if subject.len() <= 6 {
             trace!("{} incorrect subject {}", seq, subject);
 
@@ -90,10 +79,45 @@ impl TaskMgr {
             return None;
         }
 
-        let mut info_map = HashMap::new();
-        for (key, val) in parsed.unknown_fields {
-            info_map.insert(key.to_owned(), val.to_owned().to_string());
-        }
+/*
+X-stable: review
+X-Patchwork-Hint: ignore
+X-KernelTest-Patch: http://kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.11.12-rc1.gz
+X-KernelTest-Tree: git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable-rc.git
+X-KernelTest-Branch: linux-5.11.y
+X-KernelTest-Patches: git://git.kernel.org/pub/scm/linux/kernel/git/stable/stable-queue.git
+X-KernelTest-Version: 5.11.12-rc1
+X-KernelTest-Deadline: 2021-04-07T08:50+00:00
+*/
+
+        let mut info_map: HashMap<String, String> = HashMap::new();
+        headers.get_first_value("X-stable").map(|v| {
+            info_map.insert("X-stable".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Patch").map(|v| {
+            info_map.insert("X-KernelTest-Patch".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Tree").map(|v| {
+            info_map.insert("X-KernelTest-Tree".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Branch").map(|v| {
+            info_map.insert("X-KernelTest-Branch".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Patches").map(|v| {
+            info_map.insert("X-KernelTest-Patches".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Version").map(|v| {
+            info_map.insert("X-KernelTest-Version".to_owned(), v);
+        });
+
+        headers.get_first_value("X-KernelTest-Deadline").map(|v| {
+            info_map.insert("X-KernelTest-Deadline".to_owned(), v);
+        });
 
         if ! info_map.contains_key("X-KernelTest-Version") {
             trace!("{} incorrect header", seq);

@@ -18,8 +18,8 @@ prost = "*"
 log4rs = "1.0.0"
 log = "0.4"
 regex = "1"
-email-parser = "0.5"
 lazy_static = "*"
+mailparse = "0.13"
 
 [build-dependencies]
 tonic-build = "*"
