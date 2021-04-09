@@ -26,6 +26,24 @@ pub struct TaskMgr {
     conf:  super::cfg::ConfigMgr,
 }
 
+fn format_deadline(deadline: &str) -> String {
+    let mut s = String::new();
+    let mut cnt = 0;
+    for c in deadline.chars() {
+        if c == '+' && cnt == 1 {
+            s.push_str(":00");
+        }
+
+        if c == ':' {
+            cnt += 1;
+        }
+
+        s.push(c);
+    }
+
+    s
+}
+
 impl TaskMgr {
     pub fn start(conf: super::cfg::ConfigMgr) -> Result<tokio::task::JoinHandle<()>, 
     Box<dyn std::error::Error>> {
@@ -127,6 +145,8 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
         }
 
         let deadline = info_map.get("X-KernelTest-Deadline").unwrap().clone();
+        let deadline = format_deadline(&deadline);
+        info_map.insert("X-KernelTest-Deadline".to_owned(), deadline.clone());
 
         let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
         if let Err(error) = rfc3339 {
@@ -137,7 +157,7 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
         let now = Local::now();
 
         if now > deadline {
-            trace!("expired task {} deadline {} now{}", &seq, &deadline, &now);
+            trace!("expired task {} deadline {} now {}", &seq, &deadline, &now);
             return None;
         }
 

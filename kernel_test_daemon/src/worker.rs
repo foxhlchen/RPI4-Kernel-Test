@@ -2,6 +2,7 @@
 use regex::Regex;
 //use email_parser::email::Email;
 use mailparse::*;
+use chrono::prelude::*;
 
 
 fn main() {
@@ -736,6 +737,38 @@ sound/usb/quirks.c                                 |   1 +
     let subject = headers.get_first_header("X-KernelTest-Patch").unwrap();
 
     println!("{}", subject.get_value());
+    
+                              //"1996-12-19T16:39:57-08:00";
+    let deadline = String::from(format_deadline("2021-04-07T08:50+00:00"));
+
+    let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
+    if let Err(error) = rfc3339 {
+        println!("error deadline {} {}", &deadline, error);
+    }
+    let deadline = rfc3339.unwrap();
+    let now = Local::now();
+
+    if now > deadline {
+        println!("expired task deadline {} now {}", &deadline, &now);
+    }
 
     println!("None");
+}
+
+fn format_deadline(deadline: &str) -> String {
+    let mut s = String::new();
+    let mut cnt = 0;
+    for c in deadline.chars() {
+        if c == '+' && cnt == 1 {
+            s.push_str(":00");
+        }
+
+        if c == ':' {
+            cnt += 1;
+        }
+
+        s.push(c);
+    }
+
+    s
 }

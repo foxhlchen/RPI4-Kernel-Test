@@ -39,7 +39,7 @@ impl TaskService for RealTaskService {
                 let now = Local::now();
 
                 if now > deadline {
-                    warn!("expired task {} deadline {} now{}", &task_id, &deadline, &now);
+                    warn!("expired task {} deadline {} now {}", &task_id, &deadline, &now);
                     continue;
                 }
 
