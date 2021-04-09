@@ -1,7 +1,7 @@
 use serde_derive::Deserialize;
 use std::{fs, error::Error};
 
-use log::{error, warn, info, debug, trace};
+use log::{debug, trace};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -30,6 +30,7 @@ pub struct Smtp {
     pub domain: String,
     pub username: String,
     pub password: String,
+    pub from: String,
 }
 
 #[derive(Deserialize)]
@@ -96,6 +97,7 @@ password = "asdfjkl;"
 mailbox = "INBOX"
 
 [smtp]
+from = "Somebody <sbd@gmail.com>"
 domain = "imap.google.com"
 username = "abc@gmail.com"
 password = "asdfjkl;"
@@ -110,7 +112,7 @@ conf_path = "log4rs.yaml"
 
         let cfgmgr = match ConfigMgr::new_with_path("test-config.toml") {
             Ok(config) => config,
-            Err(e) => panic!("{}", e.to_string())
+            Err(e) => panic!("{}", e)
         };
 
         assert_eq!(cfgmgr.get().imap.domain, "imap.google.com");

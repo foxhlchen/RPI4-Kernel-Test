@@ -10,6 +10,8 @@ use std::sync::{Mutex};
 use lazy_static::lazy_static;
 use std::io::Write;
 use chrono::prelude::*;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
 
 lazy_static! {
     pub static ref TASKS: Mutex<HashMap<u32, Task>> = {
@@ -62,6 +64,59 @@ impl Task {
 
     pub fn get_deadline(&self) -> String {
         self.task_info.get("X-KernelTest-Deadline").unwrap().clone()
+    }
+
+    pub fn get_version(&self) -> String {
+        self.task_info.get("X-KernelTest-Version").unwrap().clone()
+    }
+
+    pub fn reply_back(&self, result: i32, detail: &Option<String>) {
+        let cfgmgr = match super::cfg::ConfigMgr::new() {
+            Ok(config) => config,
+            Err(e) => panic!("{}", e)
+        };
+
+        let detail = match detail {
+            Some(v) => v.to_owned(),
+            None => "none".to_string(),
+        };
+
+        let version = self.get_version();
+
+        let subject = format!("Linux Kernel {} Testing Result", &version);
+        let body = format!(r#"
+This is Linux Kernel {} Testing result.
+Test Result: {}
+Detail: {}
+        "#, &version, &result, detail);
+        let from = cfgmgr.get().smtp.from.to_string();
+        let to = cfgmgr.get().smtp.from.to_string();
+        let in_reply_to = "".to_string();
+
+        trace!("compose email {} from {} to {} in_reply_to {} \n body: {} ", 
+            &subject, &from, &to, &in_reply_to, &body);
+
+        let email = Message::builder()
+        .from(from.parse().unwrap())
+        //.in_reply_to(_in_reply_to.parse().unwrap())
+        .to(to.parse().unwrap())
+        .subject(subject)
+        .body(body)
+        .unwrap();
+    
+        let creds = Credentials::new(cfgmgr.get().smtp.username.to_string(), cfgmgr.get().smtp.password.to_string());
+    
+        // Open a remote connection to gmail
+        let mailer = SmtpTransport::relay(&cfgmgr.get().smtp.domain)
+            .unwrap()
+            .credentials(creds)
+            .build();
+    
+        // Send the email
+        match mailer.send(&email) {
+            Ok(_) => { info!("{} {} Result Email sent successfully!", &self.task_id, &version) }
+            Err(e) => { info!("{} {} Result Email sending failed! {}", &self.task_id, &version, e) }
+        }
     }
 }
 
@@ -191,7 +246,7 @@ impl TaskMgr {
 
         let ref tasks = *TASKS.lock().unwrap();
         for (seq, _task) in tasks {
-            writeln!(&mut file, "{}", seq);
+            writeln!(&mut file, "{}", seq)?;
         }
 
         Ok(())

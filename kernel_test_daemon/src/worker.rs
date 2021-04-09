@@ -1,5 +1,4 @@
 
-use regex::Regex;
 //use email_parser::email::Email;
 use mailparse::*;
 use chrono::prelude::*;

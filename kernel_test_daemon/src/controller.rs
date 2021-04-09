@@ -7,7 +7,6 @@ use tonic::{transport::Server, Request, Response, Status};
 use service::task_service_server::{TaskService, TaskServiceServer};
 use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse};
 use log::{error, warn, info, debug, trace};
-use chrono::prelude::*;
 use log4rs;
 
 pub mod service {
@@ -48,6 +47,7 @@ impl TaskService for RealTaskService {
             }};
 
             rt = Ok(Response::new(reply));
+            break;
         }
 
         for task_id in tasks_to_remove.iter() {
@@ -78,13 +78,13 @@ impl TaskService for RealTaskService {
             return Err(Status::not_found("No Task found"));
         }
         let task = task.unwrap();
-        
+
         if task.is_expired() {
             warn!("expired task {} deadline {}", &seq, &task.get_deadline());
         }
 
+        task.reply_back(request.task_result.result, &request.task_result.detail);
         tasks.remove(&seq);
-
 
         let reply = UpdateResultResponse {ret: 0};
         Ok(Response::new(reply))
