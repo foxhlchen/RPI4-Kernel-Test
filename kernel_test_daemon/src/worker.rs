@@ -3,7 +3,11 @@ use regex::Regex;
 //use email_parser::email::Email;
 use mailparse::*;
 use chrono::prelude::*;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
 
+
+mod cfg;
 
 fn main() {
     let text = 
@@ -753,6 +757,33 @@ sound/usb/quirks.c                                 |   1 +
     }
 
     println!("None");
+
+    let email = Message::builder()
+    .from("Fox Chen <foxhlchen@gmail.com>".parse().unwrap())
+    .in_reply_to("<606ff53b.1c69fb81.28e33.42d4@mx.google.com>".to_owned())
+    .to("Fox Chen <foxhlchen@gmail.com>".parse().unwrap())
+    .subject("A Test")
+    .body("test!".to_owned())
+    .unwrap();
+
+    let cfgmgr = match cfg::ConfigMgr::new() {
+        Ok(config) => config,
+        Err(e) => panic!("{}", e.to_string())
+    };
+
+    let creds = Credentials::new(cfgmgr.get().smtp.username.to_string(), cfgmgr.get().smtp.password.to_string());
+
+    // Open a remote connection to gmail
+    let mailer = SmtpTransport::relay(&cfgmgr.get().smtp.domain)
+        .unwrap()
+        .credentials(creds)
+        .build();
+
+    // Send the email
+    match mailer.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => panic!("Could not send email: {:?}", e),
+    }
 }
 
 fn format_deadline(deadline: &str) -> String {

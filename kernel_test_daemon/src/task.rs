@@ -44,6 +44,27 @@ fn format_deadline(deadline: &str) -> String {
     s
 }
 
+impl Task {
+    pub fn is_expired(&self) -> bool {
+        let deadline = self.task_info.get("X-KernelTest-Deadline").unwrap().clone();
+
+        let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
+        if let Err(error) = rfc3339 {
+            error!("error deadline {} {} {}", &self.task_id, &deadline, error);
+            
+            return true;
+        }
+        let deadline = rfc3339.unwrap();
+        let now = Local::now();
+
+        now > deadline
+    }
+
+    pub fn get_deadline(&self) -> String {
+        self.task_info.get("X-KernelTest-Deadline").unwrap().clone()
+    }
+}
+
 impl TaskMgr {
     pub fn start(conf: super::cfg::ConfigMgr) -> Result<tokio::task::JoinHandle<()>, 
     Box<dyn std::error::Error>> {

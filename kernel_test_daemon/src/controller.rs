@@ -31,18 +31,10 @@ impl TaskService for RealTaskService {
         for (seq, task) in tasks.iter() {
             let task_id = task.task_id.clone();
             let command = task.task_info.get("X-KernelTest-Branch").unwrap().clone();
-            let deadline = task.task_info.get("X-KernelTest-Deadline").unwrap().clone();
+            let deadline = task.get_deadline();
 
-            let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
-            if let Err(error) = rfc3339 {
-                error!("error deadline {} {} {}", &task_id, &deadline, error);
-                continue;
-            }
-            let deadline = rfc3339.unwrap();
-            let now = Local::now();
-
-            if now > deadline {
-                warn!("expired task {} deadline {} now {}", &task_id, &deadline, &now);
+            if task.is_expired() {
+                warn!("expired task {} deadline {}", &task_id, &deadline);
                 tasks_to_remove.push(seq.clone());
 
                 continue;
@@ -70,10 +62,31 @@ impl TaskService for RealTaskService {
         &self,
         request: tonic::Request<UpdateResultRequest>,
     ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
-        let reply = UpdateResultResponse {
-            ret: 0,
-        };
+        let mut tasks = task::TASKS.lock().unwrap();
+        trace!("new UpdateResultRequest");
 
+        let request = request.get_ref();
+        let seq = request.task_result.task_id.parse::<u32>();
+        if let Err(error) = seq {
+            warn!("UpdateResultRequest task_id invalid {}", error);
+            return Err(Status::not_found("No Task found"));
+        }
+        let seq = seq.unwrap();
+        let task = tasks.get(&seq);
+        if let None = task {
+            warn!("UpdateResultRequest task_id not found {}", seq);
+            return Err(Status::not_found("No Task found"));
+        }
+        let task = task.unwrap();
+        
+        if task.is_expired() {
+            warn!("expired task {} deadline {}", &seq, &task.get_deadline());
+        }
+
+        tasks.remove(&seq);
+
+
+        let reply = UpdateResultResponse {ret: 0};
         Ok(Response::new(reply))
     }
 }

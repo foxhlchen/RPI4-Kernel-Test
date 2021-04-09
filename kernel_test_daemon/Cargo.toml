@@ -21,6 +21,7 @@ regex = "1"
 lazy_static = "*"
 mailparse = "0.13"
 chrono = "0.4"
+lettre = "0.10.0-beta.3"
 
 [build-dependencies]
 tonic-build = "*"

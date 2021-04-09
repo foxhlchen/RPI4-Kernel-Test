@@ -8,6 +8,7 @@ pub struct Config {
     pub imap: IMap,
     pub rpc: Rpc,
     pub log: Log,
+    pub smtp: Smtp,
 }
 
 #[derive(Deserialize)]
@@ -22,6 +23,13 @@ pub struct IMap {
     pub username: String,
     pub password: String,
     pub mailbox: String,
+}
+
+#[derive(Deserialize)]
+pub struct Smtp {
+    pub domain: String,
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Deserialize)]
@@ -86,6 +94,11 @@ domain = "imap.google.com"
 username = "abc@gmail.com"
 password = "asdfjkl;"
 mailbox = "INBOX"
+
+[smtp]
+domain = "imap.google.com"
+username = "abc@gmail.com"
+password = "asdfjkl;"
 
 [rpc]
 addr = "[::1]:9999"
