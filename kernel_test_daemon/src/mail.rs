@@ -1,4 +1,4 @@
-use log::{error, warn, info, debug, trace};
+use log::{error};
 
 pub struct MailMgr {
 	session: imap::Session<native_tls::TlsStream<std::net::TcpStream>>,

@@ -19,52 +19,63 @@ pub struct RealTaskService {}
 
 #[tonic::async_trait]
 impl TaskService for RealTaskService {
-      async fn fetch_task(
-            &self,
-            request: tonic::Request<FetchTaskRequest>,
-        ) -> Result<tonic::Response<FetchTaskResponse>, tonic::Status> {
-            let mut tasks = task::TASKS.lock().unwrap();
+    async fn fetch_task(
+        &self,
+        _: Request<FetchTaskRequest>,
+    ) -> Result<tonic::Response<FetchTaskResponse>, tonic::Status> {
+        let mut rt = Err(Status::not_found("No Task found"));
+        let mut tasks = task::TASKS.lock().unwrap();
 
-            for (_, task) in tasks.iter() {
-                let task_id = task.task_id.clone();
-                let command = task.task_info.get("X-KernelTest-Branch").unwrap().clone();
-                let deadline = task.task_info.get("X-KernelTest-Deadline").unwrap().clone();
+        trace!("new FetchTaskRequest, pending task cnt: {}", tasks.len());
+        let mut tasks_to_remove = Vec::new();
+        for (seq, task) in tasks.iter() {
+            let task_id = task.task_id.clone();
+            let command = task.task_info.get("X-KernelTest-Branch").unwrap().clone();
+            let deadline = task.task_info.get("X-KernelTest-Deadline").unwrap().clone();
 
-                let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
-                if let Err(error) = rfc3339 {
-                    error!("error deadline {} {} {}", &task_id, &deadline, error);
-                    continue;
-                }
-                let deadline = rfc3339.unwrap();
-                let now = Local::now();
+            let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
+            if let Err(error) = rfc3339 {
+                error!("error deadline {} {} {}", &task_id, &deadline, error);
+                continue;
+            }
+            let deadline = rfc3339.unwrap();
+            let now = Local::now();
 
-                if now > deadline {
-                    warn!("expired task {} deadline {} now {}", &task_id, &deadline, &now);
-                    continue;
-                }
+            if now > deadline {
+                warn!("expired task {} deadline {} now {}", &task_id, &deadline, &now);
+                tasks_to_remove.push(seq.clone());
 
-                let reply = FetchTaskResponse {task: Task {
-                    task_id: task_id,
-                    command: command,
-                    args: None,
-                }};
-
-                return Ok(Response::new(reply))
+                continue;
             }
 
-            Err(tonic::Status::not_found("No Task found"))
+            debug!("reply new task {} to worker", &task_id);
+            let reply = FetchTaskResponse {task: Task {
+                task_id: task_id,
+                command: command,
+                args: None,
+            }};
+
+            rt = Ok(Response::new(reply));
         }
 
-        async fn update_result(
-            &self,
-            request: tonic::Request<UpdateResultRequest>,
-        ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
-            let reply = UpdateResultResponse {
-                ret: 0,
-            };
-
-            Ok(Response::new(reply))
+        for task_id in tasks_to_remove.iter() {
+            trace!("remove task {}", task_id);
+            tasks.remove(task_id);
         }
+
+        rt
+    }
+
+    async fn update_result(
+        &self,
+        request: tonic::Request<UpdateResultRequest>,
+    ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
+        let reply = UpdateResultResponse {
+            ret: 0,
+        };
+
+        Ok(Response::new(reply))
+    }
 }
 
 #[tokio::main]

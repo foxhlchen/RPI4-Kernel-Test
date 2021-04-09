@@ -6,7 +6,7 @@ use mailparse::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 use lazy_static::lazy_static;
 use std::io::Write;
 use chrono::prelude::*;
@@ -98,16 +98,16 @@ impl TaskMgr {
             return None;
         }
 
-/*
-X-stable: review
-X-Patchwork-Hint: ignore
-X-KernelTest-Patch: http://kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.11.12-rc1.gz
-X-KernelTest-Tree: git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable-rc.git
-X-KernelTest-Branch: linux-5.11.y
-X-KernelTest-Patches: git://git.kernel.org/pub/scm/linux/kernel/git/stable/stable-queue.git
-X-KernelTest-Version: 5.11.12-rc1
-X-KernelTest-Deadline: 2021-04-07T08:50+00:00
-*/
+        /*
+            X-stable: review
+            X-Patchwork-Hint: ignore
+            X-KernelTest-Patch: http://kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.11.12-rc1.gz
+            X-KernelTest-Tree: git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable-rc.git
+            X-KernelTest-Branch: linux-5.11.y
+            X-KernelTest-Patches: git://git.kernel.org/pub/scm/linux/kernel/git/stable/stable-queue.git
+            X-KernelTest-Version: 5.11.12-rc1
+            X-KernelTest-Deadline: 2021-04-07T08:50+00:00
+        */
 
         let mut info_map: HashMap<String, String> = HashMap::new();
         headers.get_first_value("X-stable").map(|v| {
@@ -157,7 +157,7 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
         let now = Local::now();
 
         if now > deadline {
-            trace!("expired task {} deadline {} now {}", &seq, &deadline, &now);
+            warn!("expired task {} deadline {} now {}", &seq, &deadline, &now);
             return None;
         }
 
@@ -169,7 +169,7 @@ X-KernelTest-Deadline: 2021-04-07T08:50+00:00
         let mut file = File::create(&self.conf.get().rpc.taskcache)?;
 
         let ref tasks = *TASKS.lock().unwrap();
-        for (seq, task) in tasks {
+        for (seq, _task) in tasks {
             writeln!(&mut file, "{}", seq);
         }
 
