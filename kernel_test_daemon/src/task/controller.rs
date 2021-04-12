@@ -70,6 +70,10 @@ impl Task {
         self.task_info.get("X-KernelTest-Version").unwrap().clone()
     }
 
+    pub fn get_branch(&self) -> String {        
+        self.task_info.get("X-KernelTest-Branch").unwrap().clone()
+    }
+
     pub fn reply_back(&self, result: i32, detail: &Option<String>) {
         let cfgmgr = match crate::cfg::controller::ConfigMgr::new() {
             Ok(config) => config,

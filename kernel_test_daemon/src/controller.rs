@@ -1,13 +1,12 @@
-
-mod cfg;
-mod mail;
-mod task;
-
 use tonic::{transport::Server, Request, Response, Status};
 use service::task_service_server::{TaskService, TaskServiceServer};
 use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse};
 use log::{error, warn, info, debug, trace};
 use log4rs;
+
+mod cfg;
+mod mail;
+mod task;
 
 pub mod service {
       tonic::include_proto!("service");
@@ -29,8 +28,21 @@ impl TaskService for RealTaskService {
         let mut tasks_to_remove = Vec::new();
         for (seq, task) in tasks.iter() {
             let task_id = task.task_id.clone();
-            let command = task.task_info.get("X-KernelTest-Branch").unwrap().clone();
+            let command = task.get_version();
+            let args = task.get_branch();
             let deadline = task.get_deadline();
+
+            let version_rawstr = task.get_version();
+            let version: Vec<&str> = version_rawstr.split('.').collect();
+            if version.len() < 2 
+                || version[0].parse::<i32>().unwrap() < 5 
+                || version[1].parse::<i32>().unwrap() < 10 
+            {
+                warn!("invalid task {} version {}", &task_id, &version_rawstr);
+                tasks_to_remove.push(seq.clone());
+
+                continue;
+            }
 
             if task.is_expired() {
                 warn!("expired task {} deadline {}", &task_id, &deadline);
@@ -43,7 +55,7 @@ impl TaskService for RealTaskService {
             let reply = FetchTaskResponse {task: Task {
                 task_id: task_id,
                 command: command,
-                args: None,
+                args: Some(args),
             }};
 
             rt = Ok(Response::new(reply));

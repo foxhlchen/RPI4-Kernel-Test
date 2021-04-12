@@ -10,6 +10,7 @@ pub mod service {
 
 mod cfg;
 mod task;
+mod mail;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,19 +24,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = conf.get().rpc.addr.to_string();
 
     info!("Initialize Task Manager");
-    let taskmgr = TaskMgr::new(&conf.get().rpc.taskcache.to_string());
+    let mut taskmgr = TaskMgr::new(&conf.get().rpc.taskcache.to_string());
     taskmgr.load_from_disk();
 
     loop {
-        let mut client = TaskServiceClient::connect(addr.to_string()).await;
+        let client = TaskServiceClient::connect(addr.to_string()).await;
         if let Err(error) = client {
             error!("Connect Server Error {}", error);
             
             sleep(Duration::from_secs(60)).await;
             continue;
         }
-        let client = client.unwrap();
+        let mut client = client.unwrap();
 
+        // no task exists, fetch one
         if ! taskmgr.is_ongoing() {
             let req_newtask = tonic::Request::new(FetchTaskRequest{});
             let response = client.fetch_task(req_newtask).await;
@@ -46,12 +48,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 sleep(Duration::from_secs(60)).await;
                 continue;
             }
+            let response = response.unwrap();
+            let task = &response.get_ref().task;
+
+            let task_id = task.task_id.to_owned();
+            let command = task.command.to_owned();
+            let args = task.args.clone();
+
+            let task = task::worker::Task {
+                state: "NEW".to_string(),
+                task_id: task_id,
+                command: command,
+                args: args,
+            };
+
+            taskmgr.set_curr_task(task);
         }
 
-        
-            // If not, Fetch a task from the controller
-
-        // Dending on task progress, execute the task or send back the result.
+        // execute & get the result
+        taskmgr.execute_curr_task();
 
 
     }
