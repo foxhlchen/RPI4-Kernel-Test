@@ -23,7 +23,7 @@ impl TaskService for RealTaskService {
         _: Request<FetchTaskRequest>,
     ) -> Result<tonic::Response<FetchTaskResponse>, tonic::Status> {
         let mut rt = Err(Status::not_found("No Task found"));
-        let mut tasks = task::TASKS.lock().unwrap();
+        let mut tasks = task::controller::TASKS.lock().unwrap();
 
         trace!("new FetchTaskRequest, pending task cnt: {}", tasks.len());
         let mut tasks_to_remove = Vec::new();
@@ -62,7 +62,7 @@ impl TaskService for RealTaskService {
         &self,
         request: tonic::Request<UpdateResultRequest>,
     ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
-        let mut tasks = task::TASKS.lock().unwrap();
+        let mut tasks = task::controller::TASKS.lock().unwrap();
         trace!("new UpdateResultRequest");
 
         let request = request.get_ref();
@@ -94,7 +94,7 @@ impl TaskService for RealTaskService {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Load config");
-    let conf = cfg::ConfigMgr::new().unwrap();
+    let conf = cfg::controller::ConfigMgr::new().unwrap();
 
     info!("Initialize Log");
     log4rs::init_file(&conf.get().log.conf_path, Default::default()).unwrap();
@@ -104,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let taskservice = RealTaskService::default();
 
     info!("Start Task Manager");
-    let taskmgr_handle = task::TaskMgr::start(conf)?;
+    let taskmgr_handle = task::controller::TaskMgr::start(conf)?;
 
     info!("Start RPC Service");
     let rpcserv = Server::builder()

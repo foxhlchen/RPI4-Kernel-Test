@@ -25,7 +25,7 @@ pub struct Task {
 }
 
 pub struct TaskMgr {
-    conf:  super::cfg::ConfigMgr,
+    conf:  crate::cfg::controller::ConfigMgr,
 }
 
 fn format_deadline(deadline: &str) -> String {
@@ -71,7 +71,7 @@ impl Task {
     }
 
     pub fn reply_back(&self, result: i32, detail: &Option<String>) {
-        let cfgmgr = match super::cfg::ConfigMgr::new() {
+        let cfgmgr = match crate::cfg::controller::ConfigMgr::new() {
             Ok(config) => config,
             Err(e) => panic!("{}", e)
         };
@@ -121,7 +121,7 @@ Detail: {}
 }
 
 impl TaskMgr {
-    pub fn start(conf: super::cfg::ConfigMgr) -> Result<tokio::task::JoinHandle<()>, 
+    pub fn start(conf: crate::cfg::controller::ConfigMgr) -> Result<tokio::task::JoinHandle<()>, 
     Box<dyn std::error::Error>> {
         let mut newmgr = TaskMgr{conf};
 

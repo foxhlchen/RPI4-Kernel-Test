@@ -1,15 +1,4 @@
 use serde_derive::Deserialize;
-use std::{fs, error::Error};
-
-use log::{debug, trace};
-
-#[derive(Deserialize)]
-pub struct Config {
-    pub imap: IMap,
-    pub rpc: Rpc,
-    pub log: Log,
-    pub smtp: Smtp,
-}
 
 #[derive(Deserialize)]
 pub struct Log {
@@ -39,41 +28,101 @@ pub struct Rpc {
     pub taskcache: String,
 }
 
-pub struct ConfigMgr {
-    pub config: Config,
+pub mod controller {
+    use std::{fs, error::Error};
+    use log::{debug, trace};
+    use super::*;
+
+    #[derive(Deserialize)]
+    pub struct Config {
+        pub imap: IMap,
+        pub rpc: Rpc,
+        pub log: Log,
+        pub smtp: Smtp,
+    }
+
+    pub struct ConfigMgr {
+        pub config: Config,
+    }
+
+    impl ConfigMgr  {
+        pub fn new_with_path(path: &str) -> Result<Self, Box<dyn Error>> {
+            let cfgmgr = ConfigMgr{
+                config: Self::config_from_path(path)?,
+            };
+            
+            Ok(cfgmgr)
+        }
+
+        pub fn new() -> Result<Self, Box<dyn Error>> {
+            let cfgmgr = Self::new_with_path("settings.toml")?;
+            
+            Ok(cfgmgr)
+        }
+
+        pub fn get(&self) -> &Config {
+            &self.config
+        }
+
+        fn config_from_path(path: &str) -> Result<Config, Box<dyn Error>> {
+            debug!("Load config file {}", path);
+            let file_content = fs::read_to_string(path)?;
+
+            trace!("Config file {} content: {}", path, &file_content);
+            let config: Config = toml::from_str(&file_content).unwrap();
+            
+            Ok(config)
+        }
+    }
+
 }
 
-impl ConfigMgr  {
-    pub fn new_with_path(path: &str) -> Result<Self, Box<dyn Error>> {
-        let cfgmgr = ConfigMgr{
-            config: Self::config_from_path(path)?,
-        };
-        
-        Ok(cfgmgr)
+pub mod worker {
+    use std::{fs, error::Error};
+    use log::{debug, trace};
+    use super::*;
+
+    #[derive(Deserialize)]
+    pub struct Config {
+        pub rpc: Rpc,
+        pub log: Log,
     }
 
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        let cfgmgr = Self::new_with_path("settings.toml")?;
-        
-        Ok(cfgmgr)
+    pub struct ConfigMgr {
+        pub config: Config,
     }
 
-    pub fn get(&self) -> &Config {
-        &self.config
+    impl ConfigMgr  {
+        pub fn new_with_path(path: &str) -> Result<Self, Box<dyn Error>> {
+            let cfgmgr = ConfigMgr{
+                config: Self::config_from_path(path)?,
+            };
+            
+            Ok(cfgmgr)
+        }
+
+        pub fn new() -> Result<Self, Box<dyn Error>> {
+            let cfgmgr = Self::new_with_path("settings.toml")?;
+            
+            Ok(cfgmgr)
+        }
+
+        pub fn get(&self) -> &Config {
+            &self.config
+        }
+
+        fn config_from_path(path: &str) -> Result<Config, Box<dyn Error>> {
+            debug!("Load config file {}", path);
+            let file_content = fs::read_to_string(path)?;
+
+            trace!("Config file {} content: {}", path, &file_content);
+            let config: Config = toml::from_str(&file_content).unwrap();
+            
+            Ok(config)
+        }
     }
 
-    fn config_from_path(path: &str) -> Result<Config, Box<dyn Error>> {
-        debug!("Load config file {}", path);
-        let file_content = fs::read_to_string(path)?;
-
-        trace!("Config file {} content: {}", path, &file_content);
-        let config: Config = toml::from_str(&file_content).unwrap();
-        
-        Ok(config)
-    }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -110,7 +159,7 @@ taskcache = "task.cache"
 conf_path = "log4rs.yaml"
         "#.as_bytes()).is_err() );
 
-        let cfgmgr = match ConfigMgr::new_with_path("test-config.toml") {
+        let cfgmgr = match controller::ConfigMgr::new_with_path("test-config.toml") {
             Ok(config) => config,
             Err(e) => panic!("{}", e)
         };

@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_fetch() {
-		let conf = crate::cfg::ConfigMgr::new().unwrap();
+		let conf = crate::cfg::controller::ConfigMgr::new().unwrap();
         let mut mailmgr = super::MailMgr::new(&conf.get().imap).unwrap();
 
 
