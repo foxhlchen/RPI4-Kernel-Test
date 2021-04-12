@@ -1,5 +1,8 @@
+use std::io::Write;
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::process::Command;
+use log::{error, warn, info, debug, trace};
 
 pub struct Task {
     pub state: String,
@@ -11,17 +14,18 @@ pub struct Task {
 pub struct TaskMgr {
     current_task: Option<Task>,
     taskcache_path: String,
+    runner_path: String,
 }
 
 impl TaskMgr {
-    pub fn new(path: &str) -> Self {
-        TaskMgr {current_task: None, taskcache_path: path.to_owned()}
+    pub fn new(path: &str, runner: &str) -> Self {
+        TaskMgr {current_task: None, taskcache_path: path.to_owned(), runner_path: runner.to_owned()}
     }
 
     pub fn load_from_disk(&mut self) {
         let file = File::open(&self.taskcache_path).unwrap();
 
-        let task_info = Vec::new();
+        let mut task_info = Vec::new();
         for line in io::BufReader::new(file).lines() {
             if let Ok(val) = line {
                 task_info.push(val);
@@ -32,13 +36,13 @@ impl TaskMgr {
             return;
         }
 
-        let state = task_info[0];
-        let task_id = task_info[1];
-        let command = task_info[2];
+        let state = task_info[0].to_owned();
+        let task_id = task_info[1].to_owned();
+        let command = task_info[2].to_owned();
         let mut args = None;
 
         if task_info.len() >= 4 {
-            args = Some(task_info[3]);
+            args = Some(task_info[3].to_owned());
         }
 
         self.current_task = Some(Task {
@@ -74,7 +78,26 @@ impl TaskMgr {
         self.current_task = Some(task);
     }
 
-    pub fn execute_curr_task(&self) {
+    pub fn execute_curr_task(&self) -> Result<String, Box<dyn std::error::Error>> {
+        if self.current_task.is_none() {
+            let err = std::boxed::Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "No Task Found"));
 
+            return Err(err);
+        }
+
+        let task_state = self.current_task.unwrap().state.to_owned();
+        let task_id = self.current_task.unwrap().to_owned();
+        let runner_path = self.runner_path.to_owned();
+        let runner = Command::new(runner_path).arg(&task.state)
+            .arg(&task.task_id).arg(&task.command);
+
+        if let Some(args) = &task.args {
+            runner.arg(args);
+        }
+
+        let rs = runner.output()?;
+
+
+        Ok(String::from_utf8(rs.stdout).unwrap())
     }
 }

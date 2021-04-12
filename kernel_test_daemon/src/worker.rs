@@ -24,7 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = conf.get().rpc.addr.to_string();
 
     info!("Initialize Task Manager");
-    let mut taskmgr = TaskMgr::new(&conf.get().rpc.taskcache.to_string());
+    let mut taskmgr = TaskMgr::new(&conf.get().rpc.taskcache.to_string(),
+                                    &conf.get().execute.runner.to_string());
     taskmgr.load_from_disk();
 
     loop {

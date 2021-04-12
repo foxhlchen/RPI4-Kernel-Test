@@ -83,9 +83,15 @@ pub mod worker {
     use super::*;
 
     #[derive(Deserialize)]
+    pub struct Execute {
+        pub runner: String,
+    }
+
+    #[derive(Deserialize)]
     pub struct Config {
         pub rpc: Rpc,
         pub log: Log,
+        pub execute: Execute,
     }
 
     pub struct ConfigMgr {
