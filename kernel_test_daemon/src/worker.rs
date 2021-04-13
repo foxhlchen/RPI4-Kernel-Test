@@ -80,21 +80,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // execute & get the result
         let output = taskmgr.execute_curr_task().expect("execute task failed.");
 
+        let code = output.status.code().unwrap();
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        
+        info!("Task Done {} {} {}", code, &stdout, &stderr);
+        
         let req_update_task = tonic::Request::new(UpdateResultRequest{
             task_result: TaskResult {
                 task_id: taskmgr.get_curr_task().as_ref().unwrap().task_id.to_owned(),
-                result: output.status.code().unwrap(),
+                result: code,
                 detail: match output.status.success() {
-                        true => {Some(String::from_utf8(output.stdout).unwrap())},
-                        false => {Some(String::from_utf8(output.stderr).unwrap())},
+                        true => {Some(stdout)},
+                        false => {Some(stderr)},
                     },
             }
         });
+
+
 
         let rs = client.update_result(req_update_task).await;
         if rs.is_ok() {
             taskmgr.clear_curr_task();
             taskmgr.store_on_disk();
+
+            info!("Result updated to controller");
         }
 
         sleep(Duration::from_secs(1800)).await;
