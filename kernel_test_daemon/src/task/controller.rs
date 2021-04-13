@@ -332,9 +332,11 @@ impl TaskMgr {
                 let mail = mail.unwrap();
                 let rs = Self::mail_to_task(seq, &mail);
                 if let Some(task) = rs {
-                    info!("Loading task from disk succeeded. {}", seq);
+                    info!("[O] Loading task {} from disk succeeded.", seq);
                     TASKS.lock().unwrap().insert(seq, task);
-                }                           
+                } else {
+                    info!("[X] Loading task {} from disk failed.", seq);
+                }
             }
         }
 
