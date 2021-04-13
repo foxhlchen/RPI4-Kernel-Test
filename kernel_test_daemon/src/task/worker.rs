@@ -2,6 +2,7 @@ use std::io::Write;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::process::Command;
+use std::path::Path;
 
 pub struct Task {
     pub state: String,
@@ -22,6 +23,10 @@ impl TaskMgr {
     }
 
     pub fn load_from_disk(&mut self) {
+        if !Path::new(&self.taskcache_path).exists() {
+            return;
+        }
+
         let file = File::open(&self.taskcache_path).unwrap();
 
         let mut task_info = Vec::new();

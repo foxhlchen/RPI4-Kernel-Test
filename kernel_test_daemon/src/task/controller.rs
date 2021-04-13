@@ -11,6 +11,7 @@ use std::io::Write;
 use chrono::prelude::*;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use std::path::Path;
 
 lazy_static! {
     pub static ref TASKS: Mutex<HashMap<u32, Task>> = {
@@ -315,6 +316,11 @@ impl TaskMgr {
     }
 
     fn load_tasks_from_disk(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if !Path::new(&self.conf.get().rpc.taskcache).exists() {
+            info!("No task file on disk.");
+            return Ok(())
+        }
+
         let file = File::open(&self.conf.get().rpc.taskcache)?;
         let mut mailmgr = MailMgr::new(&self.conf.get().imap).unwrap();
 
