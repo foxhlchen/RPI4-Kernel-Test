@@ -51,10 +51,7 @@ impl TaskService for RealTaskService {
 
             let version_rawstr = task.get_version();
             let version: Vec<&str> = version_rawstr.split('.').collect();
-            if version.len() < 2 
-                || version[0].parse::<i32>().unwrap() < 5 
-                || version[1].parse::<i32>().unwrap() < 10 
-            {
+            if !task.is_valid_version() {
                 warn!("invalid task {} version {}", &task_id, &version_rawstr);
                 tasks_to_remove.push(seq.clone());
 

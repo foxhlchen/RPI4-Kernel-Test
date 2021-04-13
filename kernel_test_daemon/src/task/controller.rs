@@ -73,6 +73,19 @@ impl Task {
         self.task_info.get("X-KernelTest-Branch").unwrap().clone()
     }
 
+    pub fn is_valid_version(&self) -> bool {
+        let version_rawstr = self.get_version();
+        let version: Vec<&str> = version_rawstr.split('.').collect();
+        if version.len() < 2 
+            || version[0].parse::<i32>().unwrap() < 5 
+            || version[1].parse::<i32>().unwrap() < 10 
+        {            
+            false
+        } else {
+            true
+        }
+    }
+
     pub fn reply_back(&self, result: i32, detail: &Option<String>) {
         let cfgmgr = match crate::cfg::controller::ConfigMgr::new() {
             Ok(config) => config,
@@ -274,21 +287,20 @@ impl TaskMgr {
         let deadline = format_deadline(&deadline);
         info_map.insert("X-KernelTest-Deadline".to_owned(), deadline.clone());
 
-        let rfc3339 = DateTime::parse_from_rfc3339(&deadline);
-        if let Err(error) = rfc3339 {
-            trace!("error deadline {} {} {}", &seq, &deadline, error);
-            return None;
-        }
-        let deadline = rfc3339.unwrap();
-        let now = Local::now();
-
-        if now > deadline {
-            warn!("expired task {} deadline {} now {}", &seq, &deadline, &now);
+        let task = Task {task_id: seq.to_string(), task_info: info_map};
+        
+        if task.is_expired() {
+            warn!("expired task {} deadline {} now {}", &seq, &deadline, &Local::now());
             return None;
         }
 
-        info!("new task from mail {} {}", seq, subject);
-        Some(Task {task_id: seq.to_string(), task_info: info_map})
+        if !task.is_valid_version() {
+            warn!("task {} version invalid {}", &seq, task.get_deadline());
+            return None;
+        }
+
+        info!("new task from mail {} {} {}", seq, subject, &deadline);
+        Some(task)
     }
 
     fn store_tasks_on_disk(&mut self) -> Result<(), Box<dyn std::error::Error>> {
