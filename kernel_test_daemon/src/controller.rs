@@ -6,6 +6,9 @@ use service::task_service_server::{TaskService, TaskServiceServer};
 use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse, Heartbeat};
 use log::{error, warn, info, debug, trace};
 use tokio::time::{sleep, Duration};
+use chrono::prelude::*;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 pub mod service {
       tonic::include_proto!("service");
@@ -14,6 +17,12 @@ pub mod service {
 mod cfg;
 mod mail;
 mod task;
+
+lazy_static! {
+    pub static ref UPDATE_TIME: Mutex<chrono::DateTime<chrono::Local>> = {
+        Mutex::new(Local::now())
+    };
+}
 
 #[derive(Debug, Default)]
 pub struct RealTaskService {}
@@ -24,6 +33,11 @@ impl TaskService for RealTaskService {
         &self,
         _: Request<FetchTaskRequest>,
     ) -> Result<tonic::Response<FetchTaskResponse>, tonic::Status> {
+        {
+            let mut guard = UPDATE_TIME.lock().unwrap();
+            *guard = Local::now();
+        }
+
         let mut rt = Err(Status::not_found("No Task found"));
         let mut tasks = task::controller::TASKS.lock().unwrap();
 
@@ -77,6 +91,11 @@ impl TaskService for RealTaskService {
         &self,
         request: tonic::Request<UpdateResultRequest>,
     ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
+        {
+            let mut guard = UPDATE_TIME.lock().unwrap();
+            *guard = Local::now();
+        }
+
         let mut tasks = task::controller::TASKS.lock().unwrap();
         trace!("new UpdateResultRequest");
 
@@ -109,20 +128,45 @@ impl TaskService for RealTaskService {
         &self,
         request: tonic::Request<Heartbeat>,
     ) -> Result<tonic::Response<Heartbeat>, tonic::Status> {
+        {
+            let mut guard = UPDATE_TIME.lock().unwrap();
+            *guard = Local::now();
+        }
+
         Ok(Response::new(Heartbeat{}))
     }
 }
 
-async fn heartbeat() {
+async fn heartbeat(from: String, to: String, username: String, passwd: String, domain: String) {
     loop {
+        {
+            let guard = UPDATE_TIME.lock().unwrap();
+            let now = Local::now();
+            let diff = guard.signed_duration_since(now);
+
+            if diff.num_hours() >= 10 {
+                error!("{} hours elapses, worker error", diff.num_hours());
+                task::controller::Task::notify_worker_unresponded(&from, &to, &username, &passwd, &domain);
+            }
+        }
         sleep(Duration::from_secs(3600)).await;
     }
 }
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Load config");
     let conf = cfg::controller::ConfigMgr::new().unwrap();
+
+    info!("Initialize Heartbeat handler");
+    let from = conf.get().smtp.from.to_owned();
+    let to = conf.get().smtp.from.to_owned();
+    let username = conf.get().smtp.username.to_owned();
+    let passwd = conf.get().smtp.password.to_owned();
+    let domain = conf.get().smtp.domain.to_owned();
+
+    let heartbeat_handle = tokio::spawn(heartbeat(from, to, username, passwd, domain));
 
     info!("Initialize Log");
     log4rs::init_file(&conf.get().log.conf_path, Default::default()).unwrap();
@@ -142,8 +186,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rpcserv_handle = tokio::spawn( async move {
         rpcserv.await
     });
-
-    let heartbeat_handle = tokio::spawn(heartbeat());
 
     let rs = tokio::try_join!(taskmgr_handle, rpcserv_handle, heartbeat_handle);
 

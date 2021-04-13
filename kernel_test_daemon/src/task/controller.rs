@@ -121,6 +121,53 @@ Detail: {}
             Err(e) => { info!("{} {} Result Email sending failed! {}", &self.task_id, &version, e) }
         }
     }
+
+    pub fn notify_worker_unresponded(
+        from: &str, 
+        to: &str, 
+        username: &str, 
+        passwd: &str, 
+        domain: &str
+    ) {
+        let subject = format!("Worker Unresponded");
+        let body = format!(r#"
+Hi, 
+
+The worker is unresponded for a while, please check to see what happened.
+
+
+Thanks,
+Testing bot
+        "#, );
+        let from = from.to_owned();
+        let to = to.to_owned();
+        let in_reply_to = "".to_string();
+
+        trace!("compose email {} from {} to {} in_reply_to {} \n body: {} ", 
+            &subject, &from, &to, &in_reply_to, &body);
+
+        let email = Message::builder()
+        .from(from.parse().unwrap())
+        //.in_reply_to(_in_reply_to.parse().unwrap())
+        .to(to.parse().unwrap())
+        .subject(subject)
+        .body(body)
+        .unwrap();
+    
+        let creds = Credentials::new(username.to_string(), passwd.to_string());
+    
+        // Open a remote connection to gmail
+        let mailer = SmtpTransport::relay(domain)
+            .unwrap()
+            .credentials(creds)
+            .build();
+    
+        // Send the email
+        match mailer.send(&email) {
+            Ok(_) => { trace!("Notification Email sent successfully!") }
+            Err(e) => { warn!("Notification Email sending failed!") }
+        }
+    }
 }
 
 impl TaskMgr {
