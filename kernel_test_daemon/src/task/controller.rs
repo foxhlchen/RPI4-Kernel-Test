@@ -1,4 +1,3 @@
-
 use log::{error, warn, info, debug, trace};
 use tokio::time::{sleep, Duration};
 use crate::mail::MailMgr;

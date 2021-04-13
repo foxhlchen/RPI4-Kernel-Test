@@ -1,5 +1,5 @@
 use service::task_service_client::{TaskServiceClient};
-use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse};
+use service::{TaskResult, FetchTaskRequest, UpdateResultRequest};
 use tokio::time::{sleep, Duration};
 use log::{error, warn, info, debug, trace};
 use task::worker::*;
@@ -29,17 +29,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     taskmgr.load_from_disk();
 
     loop {
-        let client = TaskServiceClient::connect(addr.to_string()).await;
-        if let Err(error) = client {
-            error!("Connect Server Error {}", error);
-            
-            sleep(Duration::from_secs(60)).await;
-            continue;
-        }
-        let mut client = client.unwrap();
-
         // no task exists, fetch one
         if ! taskmgr.is_ongoing() {
+            let client = TaskServiceClient::connect(addr.to_string()).await;
+            if let Err(error) = client {
+                error!("Connect Server Error {}", error);
+                
+                sleep(Duration::from_secs(60)).await;
+                continue;
+            }
+            let mut client = client.unwrap();
+
             let req_newtask = tonic::Request::new(FetchTaskRequest{});
             let response = client.fetch_task(req_newtask).await;
 
@@ -56,6 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let command = task.command.to_owned();
             let args = task.args.clone();
 
+            debug!("New Task Fetched. {} {} {}", &task_id, &command, match &args {
+                None => {"None"},
+                Some(val) => {val},
+            });
+
             let task = task::worker::Task {
                 state: "NEW".to_string(),
                 task_id: task_id,
@@ -67,9 +72,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // execute & get the result
-        taskmgr.execute_curr_task();
+        let output = taskmgr.execute_curr_task().expect("execute task failed.");
 
+        let client = TaskServiceClient::connect(addr.to_string()).await;
+        if let Err(error) = client {
+            error!("Connect Server Error {}", error);
+            
+            sleep(Duration::from_secs(60)).await;
+            continue;
+        }
+        let mut client = client.unwrap();
 
+        let req_update_task = tonic::Request::new(UpdateResultRequest{
+            task_result: TaskResult {
+                task_id: taskmgr.get_curr_task().as_ref().unwrap().task_id.to_owned(),
+                result: output.status.code().unwrap(),
+                detail: match output.status.success() {
+                        true => {Some(String::from_utf8(output.stdout).unwrap())},
+                        false => {Some(String::from_utf8(output.stderr).unwrap())},
+                    },
+            }
+        });
+
+        let _ = client.update_result(req_update_task).await;
+        sleep(Duration::from_secs(1800)).await;
     }
-
 }

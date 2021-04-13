@@ -78,26 +78,30 @@ impl TaskMgr {
         self.current_task = Some(task);
     }
 
-    pub fn execute_curr_task(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn execute_curr_task(&self) -> Result<std::process::Output, Box<dyn std::error::Error>> {
         if self.current_task.is_none() {
             let err = std::boxed::Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "No Task Found"));
 
             return Err(err);
         }
 
-        let task_state = self.current_task.unwrap().state.to_owned();
-        let task_id = self.current_task.unwrap().to_owned();
+        let task_state = self.current_task.as_ref().unwrap().state.to_owned();
+        let task_id = self.current_task.as_ref().unwrap().task_id.to_owned();
+        let task_command = self.current_task.as_ref().unwrap().command.to_owned();
+        let args = self.current_task.as_ref().unwrap().args.clone();
         let runner_path = self.runner_path.to_owned();
-        let runner = Command::new(runner_path).arg(&task.state)
-            .arg(&task.task_id).arg(&task.command);
 
-        if let Some(args) = &task.args {
+        let mut program = Command::new(runner_path);
+        let runner = program.arg(&task_state)
+            .arg(&task_id).arg(&task_command);
+
+        if let Some(args) = &args {
             runner.arg(args);
         }
 
         let rs = runner.output()?;
 
 
-        Ok(String::from_utf8(rs.stdout).unwrap())
+        Ok(rs)
     }
 }

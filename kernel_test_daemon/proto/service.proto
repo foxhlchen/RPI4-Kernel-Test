@@ -1,4 +1,3 @@
-
 package service;
 
 message Task {
@@ -29,7 +28,12 @@ message UpdateResultResponse {
     required int32 ret = 1;
 }
 
+message Heartbeat {
+
+}
+
 service TaskService {
     rpc FetchTask (FetchTaskRequest) returns (FetchTaskResponse) {}
     rpc UpdateResult (UpdateResultRequest) returns (UpdateResultResponse) {}
+    rpc HeartBeat(Heartbeat) returns (Heartbeat) {}
 }

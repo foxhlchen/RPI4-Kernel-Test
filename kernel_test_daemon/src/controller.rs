@@ -1,6 +1,6 @@
 use tonic::{transport::Server, Request, Response, Status};
 use service::task_service_server::{TaskService, TaskServiceServer};
-use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse};
+use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse, Heartbeat};
 use log::{error, warn, info, debug, trace};
 use log4rs;
 
@@ -100,6 +100,13 @@ impl TaskService for RealTaskService {
 
         let reply = UpdateResultResponse {ret: 0};
         Ok(Response::new(reply))
+    }
+
+    async fn heart_beat(
+        &self,
+        request: tonic::Request<Heartbeat>,
+    ) -> Result<tonic::Response<Heartbeat>, tonic::Status> {
+        Ok(Response::new(Heartbeat{}))
     }
 }
 
