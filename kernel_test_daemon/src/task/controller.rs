@@ -304,8 +304,8 @@ impl TaskMgr {
         Some(task)
     }
 
-    fn store_tasks_on_disk(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut file = File::create(&self.conf.get().rpc.taskcache)?;
+    pub fn store_tasks_on_disk_raw(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut file = File::create(path)?;
 
         let ref tasks = *TASKS.lock().unwrap();
         for (seq, _task) in tasks {
@@ -313,6 +313,11 @@ impl TaskMgr {
         }
 
         Ok(())
+    }
+
+    fn store_tasks_on_disk(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let path = &self.conf.get().rpc.taskcache;
+        Self::store_tasks_on_disk_raw(&self.conf.get().rpc.taskcache)
     }
 
     fn load_tasks_from_disk(&mut self) -> Result<(), Box<dyn std::error::Error>> {

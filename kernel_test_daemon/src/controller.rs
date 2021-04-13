@@ -25,7 +25,9 @@ lazy_static! {
 }
 
 #[derive(Debug, Default)]
-pub struct RealTaskService {}
+pub struct RealTaskService {
+    taskcache: String,
+}
 
 #[tonic::async_trait]
 impl TaskService for RealTaskService {
@@ -117,6 +119,11 @@ impl TaskService for RealTaskService {
         task.reply_back(request.task_result.result, &request.task_result.detail);
         tasks.remove(&seq);
 
+        let rs = task::controller::TaskMgr::store_tasks_on_disk_raw(&self.taskcache);
+        if let Err(error) = rs {
+            warn!("Update taskcache file failed. {}", error);
+        }
+
         let reply = UpdateResultResponse {ret: 0};
         Ok(Response::new(reply))
     }
@@ -170,7 +177,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Initialize RPC");
     let addr = conf.get().rpc.addr.parse()?;
-    let taskservice = RealTaskService::default();
+    let taskservice = RealTaskService {
+        taskcache: conf.get().rpc.taskcache.to_owned(),
+    };
 
     info!("Start Task Manager");
     let taskmgr_handle = task::controller::TaskMgr::start(conf)?;
