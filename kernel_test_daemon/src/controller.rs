@@ -95,29 +95,32 @@ impl TaskService for RealTaskService {
             *guard = Local::now();
         }
 
-        let mut tasks = task::controller::TASKS.lock().unwrap();
-        trace!("new UpdateResultRequest");
+        // with TASKS.lock
+        {
+            let mut tasks = task::controller::TASKS.lock().unwrap();
+            trace!("new UpdateResultRequest");
 
-        let request = request.get_ref();
-        let seq = request.task_result.task_id.parse::<u32>();
-        if let Err(error) = seq {
-            warn!("UpdateResultRequest task_id invalid {}", error);
-            return Err(Status::not_found("No Task found"));
-        }
-        let seq = seq.unwrap();
-        let task = tasks.get(&seq);
-        if let None = task {
-            warn!("UpdateResultRequest task_id not found {}", seq);
-            return Err(Status::not_found("No Task found"));
-        }
-        let task = task.unwrap();
+            let request = request.get_ref();
+            let seq = request.task_result.task_id.parse::<u32>();
+            if let Err(error) = seq {
+                warn!("UpdateResultRequest task_id invalid {}", error);
+                return Err(Status::not_found("No Task found"));
+            }
+            let seq = seq.unwrap();
+            let task = tasks.get(&seq);
+            if let None = task {
+                warn!("UpdateResultRequest task_id not found {}", seq);
+                return Err(Status::not_found("No Task found"));
+            }
+            let task = task.unwrap();
 
-        if task.is_expired() {
-            warn!("expired task {} deadline {}", &seq, &task.get_deadline());
-        }
+            if task.is_expired() {
+                warn!("expired task {} deadline {}", &seq, &task.get_deadline());
+            }
 
-        task.reply_back(request.task_result.result, &request.task_result.detail);
-        tasks.remove(&seq);
+            task.reply_back(request.task_result.result, &request.task_result.detail);
+            tasks.remove(&seq);
+        }
 
         let rs = task::controller::TaskMgr::store_tasks_on_disk_raw(&self.taskcache);
         if let Err(error) = rs {
