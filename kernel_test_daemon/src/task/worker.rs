@@ -2,7 +2,6 @@ use std::io::Write;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::process::Command;
-use log::{error, warn, info, debug, trace};
 
 pub struct Task {
     pub state: String,
@@ -63,7 +62,13 @@ impl TaskMgr {
             if let Some(args) = &task.args {
                 writeln!(&mut file, "{}", args).unwrap();
             }
+        } else {
+            writeln!(&mut file, "None").unwrap();
         }
+    }
+
+    pub fn clear_curr_task(&mut self) {
+        self.current_task = None;
     }
 
     pub fn get_curr_task(&self) -> &Option<Task> {

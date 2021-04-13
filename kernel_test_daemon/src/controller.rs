@@ -1,16 +1,19 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use tonic::{transport::Server, Request, Response, Status};
 use service::task_service_server::{TaskService, TaskServiceServer};
 use service::{Task, FetchTaskRequest, FetchTaskResponse, UpdateResultRequest, UpdateResultResponse, Heartbeat};
 use log::{error, warn, info, debug, trace};
-use log4rs;
-
-mod cfg;
-mod mail;
-mod task;
+use tokio::time::{sleep, Duration};
 
 pub mod service {
       tonic::include_proto!("service");
 }
+
+mod cfg;
+mod mail;
+mod task;
 
 #[derive(Debug, Default)]
 pub struct RealTaskService {}
@@ -110,6 +113,12 @@ impl TaskService for RealTaskService {
     }
 }
 
+async fn heartbeat() {
+    loop {
+        sleep(Duration::from_secs(3600)).await;
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Load config");
@@ -134,7 +143,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rpcserv.await
     });
 
-    let rs = tokio::try_join!(taskmgr_handle, rpcserv_handle);
+    let heartbeat_handle = tokio::spawn(heartbeat());
+
+    let rs = tokio::try_join!(taskmgr_handle, rpcserv_handle, heartbeat_handle);
 
     if let Err(error) = rs {
         error!("{}", &error);
