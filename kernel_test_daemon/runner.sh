@@ -10,7 +10,7 @@ mkdir $LOGPATH
 
 # Fetch args
 if [ "$#" -lt 4 ]; then
-    echo "args error $@" >> LOGFILE
+    echo "args error $@" >> $LOGFILE
     >&2 echo "args error $@"
     exit -1
 fi
@@ -21,9 +21,9 @@ ver=$3
 branch=$4
 
 update_result () {
-    echo "Update task $@" >> LOGFILE
+    echo "Update task $@" >> $LOGFILE
     if [ `uname -r` != "$ver" ]; then
-        echo "Build failed." >> LOGFILE
+        echo "Build failed." >> $LOGFILE
         >&2 echo "Build failed"
         exit -101    
     fi
@@ -32,15 +32,15 @@ update_result () {
 }
 
 build_kernel () {
-    echo "New task $@" >> LOGFILE
+    echo "New task $@" >> $LOGFILE
 
     # Switch to repo folder
     cd $REPO_DIR
 
     # Update code
-    git remote update >> LOGFILE
+    git remote update >> $LOGFILE
     if [ "$?" -ne 0 ]; then
-        echo "update repo failed." >> LOGFILE
+        echo "update repo failed." >> $LOGFILE
         >&2 echo "update repo failed"
         exit -2
     fi
@@ -48,7 +48,7 @@ build_kernel () {
     # Switch repo branch
     git checkout remotes/origin/$branch
     if [ "$?" -ne 0 ]; then
-        echo "checkout branch failed." >> LOGFILE
+        echo "checkout branch failed." >> $LOGFILE
         >&2 echo "checkout branch failed"
         exit -3
     fi
@@ -56,7 +56,7 @@ build_kernel () {
     # Setup build
     make defconfig
     if [ "$?" -ne 0 ]; then
-        echo "setup build failed." >> LOGFILE
+        echo "setup build failed." >> $LOGFILE
         >&2 echo "setup build failed"
         exit -4
     fi
@@ -64,7 +64,7 @@ build_kernel () {
     # Build kernel
     make
     if [ "$?" -ne 0 ]; then
-        echo "build failed." >> LOGFILE
+        echo "build failed." >> $LOGFILE
         >&2 echo "build failed"
         exit -5
     fi
@@ -72,7 +72,7 @@ build_kernel () {
     # Install kernel
     echo $PW | sudo -S make modules_install install
     if [ "$?" -ne 0 ]; then
-        echo "Install kernel failed." >> LOGFILE
+        echo "Install kernel failed." >> $LOGFILE
         >&2 echo "Install kernel failed"
         exit -6
     fi
@@ -86,7 +86,7 @@ build_kernel () {
     # Reboot
     echo $PW | sudo -S reboot
     if [ "$?" -ne 0 ]; then
-        echo "Reboot failed." >> LOGFILE
+        echo "Reboot failed." >> $LOGFILE
         >&2 echo "Reboot failed"
         exit -7
     fi    
