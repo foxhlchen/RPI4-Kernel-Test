@@ -22,7 +22,7 @@ branch=$4
 
 update_result () {
     echo "Update task $@" >> LOGFILE
-    if [ `uname -r` -ne "$ver" ]; then
+    if [ `uname -r` != "$ver" ]; then
         echo "Build failed." >> LOGFILE
         >&2 echo "Build failed"
         exit -101    
@@ -92,7 +92,7 @@ build_kernel () {
     fi    
 }
 
-if [ "$state" -eq "NEW" ]; then
+if [ "$state" = "NEW" ]; then
     build_kernel
 else
     update_result
