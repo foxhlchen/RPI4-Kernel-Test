@@ -37,6 +37,7 @@ build_kernel () {
     # Switch to repo folder
     echo "=== Switch to $REPO_DIR" >> $LOGFILE
     cd $REPO_DIR
+    make clean
 
     # Update code
     echo "=== Update repo" >> $LOGFILE
