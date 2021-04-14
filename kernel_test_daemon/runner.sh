@@ -21,24 +21,26 @@ ver=$3
 branch=$4
 
 update_result () {
-    echo "Update task $@" >> $LOGFILE
+    echo "== Update task $@" >> $LOGFILE
     if [ `uname -r` != "$ver" ]; then
         echo "Build failed." >> $LOGFILE
         >&2 echo "Build failed"
         exit -101    
     fi
 
-
+    echo "$ver Suceeded!"
 }
 
 build_kernel () {
-    echo "New task $@" >> $LOGFILE
+    echo "=== New task $@" >> $LOGFILE
 
     # Switch to repo folder
+    echo "=== Switch to $REPO_DIR" >> $LOGFILE
     cd $REPO_DIR
 
     # Update code
-    git remote update >> $LOGFILE
+    echo "=== Update repo" >> $LOGFILE
+    git remote update >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "update repo failed." >> $LOGFILE
         >&2 echo "update repo failed"
@@ -46,7 +48,8 @@ build_kernel () {
     fi
 
     # Switch repo branch
-    git checkout remotes/origin/$branch
+    echo "=== Checkout branch remotes/origin/$branch" >> $LOGFILE
+    git checkout remotes/origin/$branch >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "checkout branch failed." >> $LOGFILE
         >&2 echo "checkout branch failed"
@@ -54,7 +57,8 @@ build_kernel () {
     fi
 
     # Setup build
-    make defconfig
+    echo "=== Setup Build" >> $LOGFILE
+    make defconfig >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "setup build failed." >> $LOGFILE
         >&2 echo "setup build failed"
@@ -62,7 +66,8 @@ build_kernel () {
     fi
 
     # Build kernel
-    make
+    echo "=== Build kernel" >> $LOGFILE
+    make -j `nproc` >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "build failed." >> $LOGFILE
         >&2 echo "build failed"
@@ -70,7 +75,8 @@ build_kernel () {
     fi
 
     # Install kernel
-    echo $PW | sudo -S make modules_install install
+    echo "=== Install kernel" >> $LOGFILE
+    echo $PW | sudo -S make modules_install install >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "Install kernel failed." >> $LOGFILE
         >&2 echo "Install kernel failed"
@@ -84,7 +90,8 @@ build_kernel () {
     echo $branch >> $TASK_CACHE
 
     # Reboot
-    echo $PW | sudo -S reboot
+    echo "=== Reboot" >> $LOGFILE
+    echo $PW | sudo -S reboot >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "Reboot failed." >> $LOGFILE
         >&2 echo "Reboot failed"
