@@ -4,7 +4,7 @@ LOGPATH=`pwd`/logs
 LOGFILE=${LOGPATH}/runner.`date +%Y-%m-%d`.log
 REPO_DIR=/home/fox/Workspace/linux_src/linux-stable-rc
 PW="qwerty"
-TASK_CACHE="task.cache"
+TASK_CACHE=`pwd`/task.cache
 
 # Create log folder
 mkdir $LOGPATH
