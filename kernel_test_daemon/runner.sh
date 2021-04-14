@@ -22,7 +22,6 @@ ver=$3
 branch=$4
 
 update_result () {
-    echo "== Update task $@" >> $LOGFILE
     if [ `uname -r` != "$ver" ]; then
         echo "Build failed." >> $LOGFILE
         >&2 echo "Build failed"
@@ -33,8 +32,6 @@ update_result () {
 }
 
 build_kernel () {
-    echo "=== New task $@" >> $LOGFILE
-
     # Switch to repo folder
     echo "=== Switch to $REPO_DIR" >> $LOGFILE
     cd $REPO_DIR
@@ -102,7 +99,9 @@ build_kernel () {
 }
 
 if [ "$state" = "NEW" ]; then
+    echo "=== New task $@" >> $LOGFILE
     build_kernel
 else
+    echo "=== Update task $@" >> $LOGFILE
     update_result
 fi
