@@ -116,6 +116,7 @@ impl TaskService for RealTaskService {
 
             if task.is_expired() {
                 warn!("expired task {} deadline {}", &seq, &task.get_deadline());
+                return Err(Status::not_found("No Task found"));
             }
 
             task.reply_back(request.task_result.result, &request.task_result.detail);
