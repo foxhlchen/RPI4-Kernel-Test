@@ -1,0 +1,9 @@
+[Unit]
+Description=kernel test worker
+
+[Service]
+Type=simple
+ExecStart=/home/fox/Workspace/RPI4-Kernel-Test/kernel_test_daemon/exec.sh worker
+
+[Install]
+WantedBy=multi-user.target
