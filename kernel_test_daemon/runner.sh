@@ -7,7 +7,7 @@ PW="qwerty"
 TASK_CACHE=`pwd`/task.cache
 
 # Create log folder
-mkdir $LOGPATH
+mkdir $LOGPATH &> /dev/null
 
 # Fetch args
 if [ "$#" -lt 4 ]; then
