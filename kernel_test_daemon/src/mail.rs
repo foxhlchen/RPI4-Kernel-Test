@@ -7,8 +7,8 @@ pub struct MailMgr {
 impl MailMgr {
 	pub fn new(imap_conf: &super::cfg::IMap) -> imap::error::Result<Self> {
 		let domain = &*imap_conf.domain;
-		let tls = native_tls::TlsConnector::builder().build().unwrap();
-		let client = imap::connect((domain, 993), domain, &tls).unwrap();
+		let tls = native_tls::TlsConnector::builder().build()?;
+		let client = imap::connect((domain, 993), domain, &tls)?;
 		
 		let imap_session = client
 			.login(&imap_conf.username, &imap_conf.password)

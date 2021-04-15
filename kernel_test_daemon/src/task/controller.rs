@@ -356,10 +356,18 @@ impl TaskMgr {
 
     async fn run(&mut self) {
         loop {
-            let mut mailmgr = MailMgr::new(&self.conf.get().imap).unwrap();
+            let mailmgr = MailMgr::new(&self.conf.get().imap);
+            if let Err(error) = mailmgr {
+                error!("create mailmgr failed: {}", error);
+                sleep(Duration::from_secs(600)).await; //back off for some time
+                
+                continue;
+            }
+
+            let mut mailmgr = mailmgr.unwrap();
             let fetch_rs = mailmgr.fetch_unread();
             if let Err(error) = fetch_rs {
-                error!("fetch unread failed. error: {}", error.to_string());
+                error!("fetch unread failed. error: {}", error);
                 sleep(Duration::from_secs(600)).await; //back off for some time
                 
                 continue;
@@ -369,7 +377,7 @@ impl TaskMgr {
             for seq in unread_seqs {
                 let mail = mailmgr.fetch_mail(seq);
                 if let Err(error) = mail {
-                    error!("fetch mail {} failed. error: {}", seq, error.to_string());
+                    error!("fetch mail {} failed. error: {}", seq, error);
 
                     continue;
                 }
