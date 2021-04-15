@@ -3,7 +3,7 @@ Description=kernel test controller
 
 [Service]
 Type=simple
-ExecStart=/home/fox/Workspace/RPI4-Kernel-Test/kernel_test_daemon/exec.sh controller
+ExecStart=/bin/bash /home/fox/Workspace/RPI4-Kernel-Test/kernel_test_daemon/exec.sh controller
 
 [Install]
 WantedBy=multi-user.target
