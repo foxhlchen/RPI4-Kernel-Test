@@ -90,6 +90,7 @@ impl TaskService for RealTaskService {
         &self,
         request: tonic::Request<UpdateResultRequest>,
     ) -> Result<tonic::Response<UpdateResultResponse>, tonic::Status> {
+        let reply = UpdateResultResponse {ret: 0};
         {
             let mut guard = UPDATE_TIME.lock().unwrap();
             *guard = Local::now();
@@ -104,19 +105,19 @@ impl TaskService for RealTaskService {
             let seq = request.task_result.task_id.parse::<u32>();
             if let Err(error) = seq {
                 warn!("UpdateResultRequest task_id invalid {}", error);
-                return Err(Status::not_found("No Task found"));
+                return Ok(Response::new(reply));
             }
             let seq = seq.unwrap();
             let task = tasks.get(&seq);
             if let None = task {
                 warn!("UpdateResultRequest task_id not found {}", seq);
-                return Err(Status::not_found("No Task found"));
+                return Ok(Response::new(reply));
             }
             let task = task.unwrap();
 
             if task.is_expired() {
                 warn!("expired task {} deadline {}", &seq, &task.get_deadline());
-                return Err(Status::not_found("No Task found"));
+                return Ok(Response::new(reply));
             }
 
             task.reply_back(request.task_result.result, &request.task_result.detail);
@@ -128,7 +129,6 @@ impl TaskService for RealTaskService {
             warn!("Update taskcache file failed. {}", error);
         }
 
-        let reply = UpdateResultResponse {ret: 0};
         Ok(Response::new(reply))
     }
 
