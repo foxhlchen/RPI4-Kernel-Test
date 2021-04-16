@@ -121,9 +121,9 @@ impl Task {
 
         let report = match result {
             0 => {
-            format!(r#"
-{} Compiled and booted on my Raspberry PI 4b (8g) (bcm2711)
-            "#, &version);
+                format!(r#"
+    {} Compiled and booted on my Raspberry PI 4b (8g) (bcm2711)
+                "#, &version)
             },
             _ => {
                 format!(r#"
@@ -291,7 +291,7 @@ impl TaskMgr {
 
         let mut info_map: HashMap<String, String> = HashMap::new();
 
-        info_map.insert("Subject".to_owned(), subject);
+        info_map.insert("Subject".to_owned(), subject.to_owned());
         info_map.insert("Body".to_owned(), body);
         
         headers.get_first_value("Date").map(|v| {
