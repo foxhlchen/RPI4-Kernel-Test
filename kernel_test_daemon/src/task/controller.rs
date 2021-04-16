@@ -87,7 +87,7 @@ impl Task {
         }
     }
 
-    pub fn reply_back(&self, result: i32, detail: &Option<String>) {
+    pub fn reply_back(&self, result: i32, detail: &Option<String>) -> Result<(), lettre::transport::smtp::Error> {
         let cfgmgr = match crate::cfg::controller::ConfigMgr::new() {
             Ok(config) => config,
             Err(e) => panic!("{}", e)
@@ -100,22 +100,54 @@ impl Task {
 
         let version = self.get_version();
 
-        let subject = format!("Linux Kernel {} Testing Result", &version);
-        let body = format!(r#"
-This is Linux Kernel {} Testing result.
-Test Result: {}
-Detail: {}
-        "#, &version, &result, detail);
+        let origin_subject = self.task_info.get("Subject").unwrap();
+        let origin_body = self.task_info.get("Body").unwrap();
+        let origin_from = self.task_info.get("From").unwrap();
+        let origin_to = self.task_info.get("To").unwrap();
+        let origin_date = self.task_info.get("Date").unwrap();
+        let origin_msgid = self.task_info.get("Message-ID").unwrap();
+
+        let subject = format!("RE: {}", origin_subject);
+        let mut body = format!("On {}, {} wrote:\r\n", origin_date, origin_from);
+
+        for origin_line in origin_body.lines() {
+            if origin_line.starts_with("---") {
+                break;
+            }
+
+            let newline = format!("> {}\r\n", origin_line);
+            body.push_str(&newline);
+        }
+
+        let report = match result {
+            0 => {
+            format!(r#"
+{} Compiled and booted on my Raspberry PI 4b (8g) (bcm2711)
+            "#, &version);
+            },
+            _ => {
+                format!(r#"
+{} Failed to be compiled & booted on my Raspberry PI 4b (8g) (bcm2711)
+Code: {}
+Err:
+{}
+                "#, &version, &result, &detail)
+            }
+        };
+
+        let signature = format!("\r\nTested-by: Fox Chen <foxhlchen@gmail.com>\r\n");
+
+        let body = format!("{}{}{}", &body, &report, &signature);
         let from = cfgmgr.get().smtp.from.to_string();
         let to = cfgmgr.get().smtp.from.to_string();
-        let in_reply_to = "".to_string();
+        let in_reply_to = origin_msgid;
 
         trace!("compose email {} from {} to {} in_reply_to {} \n body: {} ", 
             &subject, &from, &to, &in_reply_to, &body);
 
         let email = Message::builder()
         .from(from.parse().unwrap())
-        //.in_reply_to(_in_reply_to.parse().unwrap())
+        //.in_reply_to(in_reply_to.parse().unwrap())
         .to(to.parse().unwrap())
         .subject(subject)
         .body(body)
@@ -131,8 +163,14 @@ Detail: {}
     
         // Send the email
         match mailer.send(&email) {
-            Ok(_) => { info!("{} {} Result Email sent successfully!", &self.task_id, &version) }
-            Err(e) => { info!("{} {} Result Email sending failed! {}", &self.task_id, &version, e) }
+            Ok(_) => { 
+                info!("{} {} Result Email sent successfully!", &self.task_id, &version); 
+                Ok(())
+            }
+            Err(e) => { 
+                info!("{} {} Result Email sending failed! {}", &self.task_id, &version, e);
+                Err(e)
+            }
         }
     }
 
@@ -238,6 +276,8 @@ impl TaskMgr {
             return None;
         }
 
+        let body = parsed.get_body().unwrap();
+
         /*
             X-stable: review
             X-Patchwork-Hint: ignore
@@ -250,6 +290,26 @@ impl TaskMgr {
         */
 
         let mut info_map: HashMap<String, String> = HashMap::new();
+
+        info_map.insert("Subject".to_owned(), subject);
+        info_map.insert("Body".to_owned(), body);
+        
+        headers.get_first_value("Date").map(|v| {
+            info_map.insert("Date".to_owned(), v);
+        });
+
+        headers.get_first_value("From").map(|v| {
+            info_map.insert("From".to_owned(), v);
+        });
+
+        headers.get_first_value("To").map(|v| {
+            info_map.insert("To".to_owned(), v);
+        });
+
+        headers.get_first_value("Message-ID").map(|v| {
+            info_map.insert("Message-ID".to_owned(), v);
+        });
+
         headers.get_first_value("X-stable").map(|v| {
             info_map.insert("X-stable".to_owned(), v);
         });

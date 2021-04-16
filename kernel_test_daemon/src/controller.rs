@@ -120,7 +120,10 @@ impl TaskService for RealTaskService {
                 return Ok(Response::new(reply));
             }
 
-            task.reply_back(request.task_result.result, &request.task_result.detail);
+            if let Err(e) = task.reply_back(request.task_result.result, &request.task_result.detail) {
+                warn!("Send back result error, task {} deadline {} error {}", &seq, &task.get_deadline(), e);
+                return Err(Status::not_found("Failed to send result email, Please retry later."));
+            }
             tasks.remove(&seq);
         }
 
