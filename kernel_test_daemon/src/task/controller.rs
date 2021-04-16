@@ -106,6 +106,7 @@ impl Task {
         let origin_to = self.task_info.get("To").unwrap();
         let origin_date = self.task_info.get("Date").unwrap();
         let origin_msgid = self.task_info.get("Message-ID").unwrap();
+        let origin_cc = self.task_info.get("Cc");
 
         let subject = format!("RE: {}", origin_subject);
         let mut body = format!("On {}, {} wrote:\r\n", origin_date, origin_from);
@@ -140,19 +141,33 @@ Err:
 
         let body = format!("{}{}{}", &body, &report, &signature);
         let from = cfgmgr.get().smtp.from.to_string();
-        let to = cfgmgr.get().smtp.from.to_string();
+        let to = origin_to.to_owned();
+        let cc = match origin_cc {
+            Some(v) => format!("{}, {}", v, cfgmgr.get().smtp.from.to_string()),
+            None => cfgmgr.get().smtp.from.to_string(),
+        };
         let in_reply_to = origin_msgid;
 
         trace!("compose email {} from {} to {} in_reply_to {} \n body: {} ", 
             &subject, &from, &to, &in_reply_to, &body);
 
-        let email = Message::builder()
-        .from(from.parse().unwrap())
-        //.in_reply_to(in_reply_to.parse().unwrap())
-        .to(to.parse().unwrap())
-        .subject(subject)
-        .body(body)
-        .unwrap();
+        let email = match result {
+            0 => Message::builder()
+                .from(from.parse().unwrap())
+                .in_reply_to(in_reply_to.parse().unwrap())
+                .to(to.parse().unwrap())
+                .cc(cc.parse().unwrap())
+                .subject(subject)
+                .body(body)
+                .unwrap(),
+            
+            _ => Message::builder()
+                .from(from.parse().unwrap())
+                .to(cfgmgr.get().smtp.from.to_string().parse().unwrap())
+                .subject(subject)
+                .body(body)
+                .unwrap(),
+        };
     
         let creds = Credentials::new(cfgmgr.get().smtp.username.to_string(), cfgmgr.get().smtp.password.to_string());
     
@@ -305,6 +320,10 @@ impl TaskMgr {
 
         headers.get_first_value("To").map(|v| {
             info_map.insert("To".to_owned(), v);
+        });
+
+        headers.get_first_value("Cc").map(|v| {
+            info_map.insert("Cc".to_owned(), v);
         });
 
         headers.get_first_value("Message-ID").map(|v| {
