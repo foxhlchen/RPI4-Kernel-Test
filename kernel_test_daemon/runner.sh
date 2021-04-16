@@ -22,7 +22,7 @@ ver=$3
 branch=$4
 
 update_result () {
-    if [ `uname -r` != "$ver" ]; then
+    if [[ `uname -r` != *"$ver"* ]]; then
         echo "Build failed." >> $LOGFILE
         >&2 echo "Build failed"
         exit -101    
