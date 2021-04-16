@@ -122,12 +122,13 @@ impl Task {
         let report = match result {
             0 => {
                 format!(r#"
-    {} Compiled and booted on my Raspberry PI 4b (8g) (bcm2711)
+{} Successfully Compiled and booted on my Raspberry PI 4b (8g) (bcm2711)
                 "#, &version)
             },
             _ => {
                 format!(r#"
-{} Failed to be compiled & booted on my Raspberry PI 4b (8g) (bcm2711)
+{} __Failed__ to be compiled & booted on my Raspberry PI 4b (8g) (bcm2711)
+
 Code: {}
 Err:
 {}
