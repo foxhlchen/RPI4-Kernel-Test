@@ -152,15 +152,23 @@ Err:
             &subject, &from, &to, &in_reply_to, &body);
 
         let email = match result {
-            0 => Message::builder()
+            0 => {
+                let mut builder = Message::builder()
                 .from(from.parse().unwrap())
                 .in_reply_to(in_reply_to.parse().unwrap())
-                .to(to.parse().unwrap())
-                .cc(cc.parse().unwrap())
-                .subject(subject)
-                .body(body)
-                .unwrap(),
-            
+                .subject(subject);
+
+                for one_addr in to.split(',') {
+                    builder = builder.to(one_addr.parse().unwrap());
+                }
+
+                for one_addr in cc.split(',') {                
+                    builder = builder.cc(one_addr.parse().unwrap());
+                }
+
+                builder.body(body).unwrap()
+
+            }
             _ => Message::builder()
                 .from(from.parse().unwrap())
                 .to(cfgmgr.get().smtp.from.to_string().parse().unwrap())
