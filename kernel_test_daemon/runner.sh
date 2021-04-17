@@ -88,6 +88,9 @@ build_kernel () {
     echo $ver >> $TASK_CACHE &&
     echo $branch >> $TASK_CACHE
 
+    # rm modules
+    echo $PW | sudo -S rm -r /usr/lib/modules/`uname -r` >> $LOGFILE 2>&1
+
     # Reboot
     echo "=== Reboot" >> $LOGFILE
     echo $PW | sudo -S reboot >> $LOGFILE 2>&1
