@@ -105,6 +105,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             taskmgr.store_on_disk();
 
             info!("Result updated to controller");
+        } else if let Err(e) = rs {
+            warn!("Result failed to update {}", e);
+            
+            sleep(Duration::from_secs(600)).await;
+            continue;
         }
 
         sleep(Duration::from_secs(1800)).await;
