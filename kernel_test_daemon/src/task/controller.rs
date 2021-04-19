@@ -160,12 +160,12 @@ Err:
 
                 for one_addr in to.split(',') {
                     info!("to: {}", one_addr);
-                    builder = builder.to(one_addr.parse().unwrap());
+                    builder = builder.to(one_addr.trim().parse().unwrap());
                 }
 
                 for one_addr in cc.split(',') {
                     info!("cc: {}", one_addr);
-                    builder = builder.cc(one_addr.parse().unwrap());
+                    builder = builder.cc(one_addr.trim().parse().unwrap());
                 }
 
                 builder.body(body).unwrap()
