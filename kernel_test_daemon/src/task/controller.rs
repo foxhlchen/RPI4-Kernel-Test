@@ -159,10 +159,12 @@ Err:
                 .subject(subject);
 
                 for one_addr in to.split(',') {
+                    info!("to: {}", one_addr);
                     builder = builder.to(one_addr.parse().unwrap());
                 }
 
-                for one_addr in cc.split(',') {                
+                for one_addr in cc.split(',') {
+                    info!("cc: {}", one_addr);
                     builder = builder.cc(one_addr.parse().unwrap());
                 }
 
