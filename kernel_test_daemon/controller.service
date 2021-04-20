@@ -4,6 +4,8 @@ Description=kernel test controller
 [Service]
 Type=simple
 ExecStart=/bin/bash /home/fox/Workspace/RPI4-Kernel-Test/kernel_test_daemon/exec.sh controller
+Restart=on-failure
+RestartSec=60s
 
 [Install]
 WantedBy=multi-user.target
