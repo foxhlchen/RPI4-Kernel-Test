@@ -30,7 +30,7 @@ The program comprises two parts: `controller` and `worker`. The controller polli
    
 ### Config
 
-Size Limits supports three ways to define config.
+The controller and worker will read settings.toml from its working directory when started.
 
 1. controller's `settings.toml`:
    ```toml
