@@ -4,8 +4,7 @@ It's triggered by emails in maillist(stable@vger.kernel.org), fetches source cod
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+The program comprises two parts: `controller` and `worker`. The controller polling email box regularly dispatches testing tasks to the worker and also monitoring the health of the worker. The worker on the other hand receiving tasks from the controller, executes the runner.sh to fetch, build, and boot specified linux kernels, then reports results back to the controller.
 
 ### Installation
 
