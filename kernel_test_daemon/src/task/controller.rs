@@ -290,13 +290,16 @@ impl TaskMgr {
             return None;
         }
 
-        if &subject[..6] != "[PATCH" {
+        let subject_prefix: String = subject.chars().take(6).collect();
+        let subject_suffix: String = subject.chars().rev().take(6).collect::<String>().chars().rev().collect::<String>();
+
+        if &subject_prefix != "[PATCH" {
             trace!("{} incorrect subject {}", seq, subject);
 
             return None;
         }
 
-        if &subject[subject.len() - 6..] != "review" {
+        if &subject_suffix != "review" {
             trace!("{} incorrect subject {}", seq, subject);
 
             return None;
