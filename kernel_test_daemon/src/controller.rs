@@ -40,6 +40,8 @@ impl TaskService for RealTaskService {
             *guard = Local::now();
         }
 
+        info!("Task fetched from worker.");
+
         let mut rt = Err(Status::not_found("No Task found"));
         let mut tasks = task::controller::TASKS.lock().unwrap();
 
@@ -95,6 +97,8 @@ impl TaskService for RealTaskService {
             let mut guard = UPDATE_TIME.lock().unwrap();
             *guard = Local::now();
         }
+
+        info!("Task updated from worker.");
 
         // with TASKS.lock
         {
@@ -154,6 +158,8 @@ async fn heartbeat(from: String, to: String, username: String, passwd: String, d
             let guard = UPDATE_TIME.lock().unwrap();
             let now = Local::now();
             let diff = guard.signed_duration_since(now);
+
+            info!("Heartbeat Check. no ping from worker for {} hours", diff.num_hours());
 
             if diff.num_hours() >= 10 {
                 error!("{} hours elapses, worker error", diff.num_hours());
