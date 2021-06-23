@@ -157,7 +157,7 @@ async fn heartbeat(from: String, to: String, username: String, passwd: String, d
         {
             let guard = UPDATE_TIME.lock().unwrap();
             let now = Local::now();
-            let diff = guard.signed_duration_since(now);
+            let diff = now.signed_duration_since(*guard);
 
             info!("Heartbeat Check. no ping from worker for {} hours", diff.num_hours());
 
