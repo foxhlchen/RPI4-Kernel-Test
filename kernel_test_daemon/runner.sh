@@ -90,6 +90,10 @@ build_kernel () {
 
     # rm modules
     echo $PW | sudo -S rm -r /usr/lib/modules/`uname -r` >> $LOGFILE 2>&1
+    if [ "$ver" == "`uname -r | cut -d'-' -f1`" ]; then
+        echo "=== Reinstall modules" >> $LOGFILE
+        echo $PW | sudo -S make modules_install >> $LOGFILE 2>&1
+    fi
 
     # Reboot
     echo "=== Reboot" >> $LOGFILE
