@@ -48,7 +48,7 @@ build_kernel () {
 
     # Switch repo branch
     echo "=== Checkout branch remotes/origin/$branch" >> $LOGFILE
-    git checkout remotes/origin/$branch >> $LOGFILE 2>&1
+    git checkout -f remotes/origin/$branch >> $LOGFILE 2>&1
     if [ "$?" -ne 0 ]; then
         echo "checkout branch failed." >> $LOGFILE
         >&2 echo "checkout branch failed"
